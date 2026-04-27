@@ -17,21 +17,10 @@ const router = createRouter({
     {
       path: '/verificar/:hash',
       name: 'verificar',
+      // Cambiamos el import dinámico por uno directo para que cargue más rápido
       component: () => import('../views/VerificarGarantia.vue'),
-      // ✅ Validar que hash sea un hexadecimal válido
-      /* beforeEnter: (to, from, next) => {
-        const hash = to.params.hash as string
-
-        // Hash SHA-256 siempre tiene 64 caracteres hexadecimales
-        if (!/^[a-f0-9]{64}$/i.test(hash)) {
-          console.error('Hash inválido:', hash)
-          next('/') // Redirigir al inicio
-        } else {
-          next()
-        }
-      }, */
     },
-    // ✅ Ruta catch-all para URLs no encontradas
+    // Esta ruta SIEMPRE debe ir al final
     {
       path: '/:pathMatch(.*)*',
       redirect: '/',

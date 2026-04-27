@@ -25,7 +25,6 @@ interface Garantia {
 // ============================================
 
 const route = useRoute()
-const hash = route.params.hash as string
 
 const garantia = ref<Garantia | null>(null)
 const loading = ref(true)
@@ -43,8 +42,11 @@ const formReclamacion = ref({
 // ============================================
 
 onMounted(async () => {
-  if (!hash) {
-    error.value = 'Hash inválido o no proporcionado'
+  // Asegúrate de obtener el hash directamente del objeto route actual
+  const currentHash = route.params.hash as string
+
+  if (!currentHash) {
+    error.value = '❌ No se detectó un código de garantía en la URL.'
     loading.value = false
     return
   }
@@ -54,7 +56,7 @@ onMounted(async () => {
     const { data, error: dbError } = await supabase
       .from('garantias')
       .select('*')
-      .eq('hash_certificado', hash)
+      .eq('hash_certificado', currentHash)
       .single()
 
     if (dbError || !data) {
@@ -156,6 +158,7 @@ async function enviarReclamacion() {
 <template>
   <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 py-8">
     <div class="max-w-2xl mx-auto">
+      <div class="w-full max-w-2xl mx-auto px-2 sm:px-4"></div>
       <!-- CARGANDO -->
       <div v-if="loading" class="text-center py-12">
         <div class="inline-block">

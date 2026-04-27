@@ -2,6 +2,7 @@
 import RegistroForm from './components/RegistroForm.vue'
 </script>
 
+
 <template>
   <div class="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
 

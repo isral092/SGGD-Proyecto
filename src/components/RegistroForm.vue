@@ -46,8 +46,12 @@ async function handleSubmit() {
     const hash = CryptoJS.SHA256(semilla).toString()
 
     // 2. URL y QR
-    // En tu RegistroForm.vue, asegúrate de que la URL sea así:
-    const urlVerificacion = `https://tu-app-desplegada.vercel.app/verificar/${hash}`
+    // ✅ AQUÍ ESTÁ LA SOLUCIÓN: usar variable de entorno
+    const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
+    const urlVerificacion = `${appUrl}/verificar/${hash}`
+
+    console.log('URL de verificación generada:', urlVerificacion) // Para debugging
+
     const qrImage = await QRCode.toDataURL(urlVerificacion)
 
     // 3. Insertar en Supabase
@@ -66,7 +70,7 @@ async function handleSubmit() {
     }
 
     successData.value = { qr: qrImage, hash: hash }
-  } catch (err) {
+  } catch (err: unknown) {
     const errorEncontrado = err as Error
     errorMsg.value = errorEncontrado.message
   } finally {
@@ -99,20 +103,20 @@ const descargarQR = () => {
         <input
           v-model="formData.numero_serie"
           placeholder="Número de Serie (Ej: SN-990)"
-          class="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500"
+          class="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500 text-gray-900"
           required
         />
         <input
           v-model="formData.modelo_producto"
           placeholder="Modelo del Producto"
-          class="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500"
+          class="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500 text-gray-900"
           required
         />
         <input
           v-model="formData.cliente_email"
           type="email"
           placeholder="Email del Cliente"
-          class="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500"
+          class="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500 text-gray-900"
           required
         />
 
@@ -122,17 +126,19 @@ const descargarQR = () => {
             <input
               v-model="formData.fecha_venta"
               type="date"
-              class="w-full p-3 bg-gray-50 rounded-xl border-none"
+              class="w-full p-3 bg-gray-50 rounded-xl border-none text-gray-900"
             />
           </div>
           <div class="flex-1">
             <label class="text-xs font-bold text-gray-400 ml-2">DURACIÓN</label>
             <select
-              v-model="formData.duracion_meses"
-              class="w-full p-3 bg-gray-50 rounded-xl border-none"
+              v-model.number="formData.duracion_meses"
+              class="w-full p-3 bg-gray-50 rounded-xl border-none text-gray-900"
             >
               <option :value="12">1 Año</option>
               <option :value="24">2 Años</option>
+              <option :value="6">6 Meses</option>
+              <option :value="36">3 Años</option>
             </select>
           </div>
         </div>
@@ -143,7 +149,7 @@ const descargarQR = () => {
 
         <button
           :disabled="loading"
-          class="w-full bg-blue-600 text-white font-bold p-4 rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-200"
+          class="w-full bg-blue-600 text-white font-bold p-4 rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 disabled:bg-gray-400"
         >
           {{ loading ? 'Protegiendo datos...' : 'Generar Certificado Digital' }}
         </button>
@@ -158,17 +164,17 @@ const descargarQR = () => {
       </div>
       <h2 class="text-2xl font-bold text-gray-800 mb-2">¡Garantía Blindada!</h2>
       <img :src="successData.qr" class="mx-auto w-48 h-48 my-4 p-2 bg-white border rounded-xl" />
-      <p class="text-[10px] text-gray-400 font-mono mb-6 truncate">{{ successData.hash }}</p>
+      <p class="text-[10px] text-gray-400 font-mono mb-6 break-all">{{ successData.hash }}</p>
 
       <div class="flex flex-col gap-2">
         <button
           @click="descargarQR"
-          class="w-full bg-green-600 text-white p-3 rounded-xl font-bold"
+          class="w-full bg-green-600 hover:bg-green-700 text-white p-3 rounded-xl font-bold transition"
         >
-          Descargar Imagen QR
+          📥 Descargar Imagen QR
         </button>
-        <button @click="successData = null" class="text-gray-500 text-sm">
-          Registrar otro equipo
+        <button @click="successData = null" class="text-gray-500 text-sm hover:text-gray-700">
+          ➕ Registrar otro equipo
         </button>
       </div>
     </div>

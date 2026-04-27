@@ -47,7 +47,7 @@ async function handleSubmit() {
 
     // 2. URL y QR
     // ✅ AQUÍ ESTÁ LA SOLUCIÓN: usar variable de entorno
-    const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
+    const appUrl = import.meta.env.VITE_APP_URL
     const urlVerificacion = `${appUrl}/verificar/${hash}`
 
     console.log('URL de verificación generada:', urlVerificacion) // Para debugging

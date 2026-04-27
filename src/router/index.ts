@@ -19,7 +19,7 @@ const router = createRouter({
       name: 'verificar',
       component: () => import('../views/VerificarGarantia.vue'),
       // ✅ Validar que hash sea un hexadecimal válido
-      beforeEnter: (to, from, next) => {
+      /* beforeEnter: (to, from, next) => {
         const hash = to.params.hash as string
 
         // Hash SHA-256 siempre tiene 64 caracteres hexadecimales
@@ -29,7 +29,7 @@ const router = createRouter({
         } else {
           next()
         }
-      },
+      }, */
     },
     // ✅ Ruta catch-all para URLs no encontradas
     {

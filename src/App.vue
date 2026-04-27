@@ -1,17 +1,22 @@
 <script setup lang="ts">
-import RegistroForm from './components/RegistroForm.vue'
+// No importar componentes aquí, el router se encarga
 </script>
 
-
 <template>
-  <div class="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
+  <div class="min-h-screen bg-gray-100">
+    <!-- ENCABEZADO -->
+    <header class="bg-white shadow">
+      <div class="max-w-7xl mx-auto px-4 py-6">
+        <h1 class="text-4xl font-extrabold text-gray-900">Sistema SGGD</h1>
+        <p class="text-gray-600 text-sm mt-2">Gestor de Garantías Digitales</p>
+      </div>
+    </header>
 
-    <h1 class="text-4xl font-extrabold text-gray-900 mb-8">Sistema SGGD</h1>
-
-    <div class="w-full max-w-lg">
-      <RegistroForm />
-    </div>
-
+    <!-- CONTENIDO DINÁMICO (El router maneja qué mostrar) -->
+    <main class="flex flex-col items-center justify-center p-4 min-h-[calc(100vh-120px)]">
+      <router-view />
+      <!-- ✅ AQUÍ ES DONDE APARECEN LAS PÁGINAS -->
+    </main>
   </div>
 </template>
 

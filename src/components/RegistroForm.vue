@@ -27,9 +27,21 @@ const fechaVencimiento = computed(() => {
   return d.toISOString().split('T')[0]
 })
 
-const validar = () => {
+const validar = (): string | null => {
   if (formData.value.numero_serie.length < 3) return 'Serial demasiado corto'
   if (!formData.value.cliente_email.includes('@')) return 'Email inválido'
+
+  // ✅ Validar que la fecha de vencimiento sea real
+  const venc = fechaVencimiento.value
+  if (
+    venc === undefined ||
+    venc === 'Esperando fecha...' ||
+    venc === 'Fecha inválida' ||
+    venc.length !== 10
+  ) {
+    return 'Fecha de venta o duración inválida'
+  }
+
   return null
 }
 
@@ -88,94 +100,138 @@ const descargarQR = () => {
 </script>
 
 <template>
-  <div class="w-full max-w-xl mx-auto p-2 sm:p-4">
-    <div v-if="!successData" class="bg-white shadow-2xl rounded-3xl p-8 border border-gray-100">
-      <h2 class="text-3xl font-extrabold text-gray-800 mb-6 text-center">Registro de Garantía</h2>
+  <div class="w-full h-full min-h-[calc(100vh-4rem)] flex items-center justify-center py-4 sm:py-8">
+    <!-- FORMULARIO -->
+    <div v-if="!successData" class="w-full md:max-w-4xl lg:max-w-5xl xl:max-w-6xl">
+      <div class="bg-white shadow-2xl rounded-2xl p-6 sm:p-8 md:p-12 border border-gray-100">
+        <h2
+          class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-800 mb-4 sm:mb-8 text-center"
+        >
+          Registro de Garantía Digital
+        </h2>
 
-      <div
-        v-if="errorMsg"
-        class="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-100 italic"
-      >
-        ⚠️ {{ errorMsg }}
-      </div>
+        <div
+          v-if="errorMsg"
+          class="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 text-red-600 rounded-lg text-sm sm:text-base border border-red-200 italic"
+        >
+          ⚠️ {{ errorMsg }}
+        </div>
 
-      <form @submit.prevent="handleSubmit" class="space-y-4">
-        <input
-          v-model="formData.numero_serie"
-          placeholder="Número de Serie (Ej: SN-990)"
-          class="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-          required
-        />
-        <input
-          v-model="formData.modelo_producto"
-          placeholder="Modelo del Producto"
-          class="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-          required
-        />
-        <input
-          v-model="formData.cliente_email"
-          type="email"
-          placeholder="Email del Cliente"
-          class="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-          required
-        />
-
-        <div class="flex gap-4">
-          <div class="flex-1">
-            <label class="text-xs font-bold text-gray-400 ml-2">FECHA VENTA</label>
+        <form @submit.prevent="handleSubmit" class="space-y-4 sm:space-y-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <input
-              v-model="formData.fecha_venta"
-              type="date"
-              class="w-full p-3 bg-gray-50 rounded-xl border-none text-gray-900"
+              v-model="formData.numero_serie"
+              placeholder="Número de Serie (Ej: SN-990)"
+              class="w-full p-3 sm:p-4 text-base sm:text-lg bg-gray-50 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-gray-900 transition"
+              required
+            />
+            <input
+              v-model="formData.modelo_producto"
+              placeholder="Modelo del Producto"
+              class="w-full p-3 sm:p-4 text-base sm:text-lg bg-gray-50 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-gray-900 transition"
+              required
             />
           </div>
-          <div class="flex-1">
-            <label class="text-xs font-bold text-gray-400 ml-2">DURACIÓN</label>
-            <select
-              v-model.number="formData.duracion_meses"
-              class="w-full p-3 bg-gray-50 rounded-xl border-none text-gray-900"
-            >
-              <option :value="12">1 Año</option>
-              <option :value="24">2 Años</option>
-              <option :value="6">6 Meses</option>
-              <option :value="36">3 Años</option>
-            </select>
+
+          <input
+            v-model="formData.cliente_email"
+            type="email"
+            placeholder="Email del Cliente"
+            class="w-full p-3 sm:p-4 text-base sm:text-lg bg-gray-50 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-gray-900 transition"
+            required
+          />
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <div>
+              <label class="text-xs sm:text-sm font-bold text-gray-600 block mb-2"
+                >FECHA DE VENTA</label
+              >
+              <input
+                v-model="formData.fecha_venta"
+                type="date"
+                class="w-full p-3 sm:p-4 text-base sm:text-lg bg-gray-50 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-gray-900 transition"
+              />
+            </div>
+            <div>
+              <label class="text-xs sm:text-sm font-bold text-gray-600 block mb-2"
+                >DURACIÓN DE GARANTÍA</label
+              >
+              <select
+                v-model.number="formData.duracion_meses"
+                class="w-full p-3 sm:p-4 text-base sm:text-lg bg-gray-50 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-gray-900 transition"
+              >
+                <option :value="6">6 Meses</option>
+                <option :value="12">1 Año (12 meses)</option>
+                <option :value="24">2 Años (24 meses)</option>
+                <option :value="36">3 Años (36 meses)</option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        <div class="p-4 bg-blue-50 rounded-2xl text-blue-700 text-sm font-medium">
-          Vence el: <span class="font-bold">{{ fechaVencimiento }}</span>
-        </div>
+          <div
+            class="p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200"
+          >
+            <p class="text-gray-700 text-base sm:text-lg font-semibold">
+              📅 Fecha de Vencimiento:
+              <span class="text-blue-600 font-bold text-lg sm:text-xl">{{ fechaVencimiento }}</span>
+            </p>
+          </div>
 
-        <button
-          :disabled="loading"
-          class="w-full bg-blue-600 text-white font-bold p-4 rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 disabled:bg-gray-400"
-        >
-          {{ loading ? 'Protegiendo datos...' : 'Generar Certificado Digital' }}
-        </button>
-      </form>
+          <button
+            :disabled="loading"
+            class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 text-white font-bold text-base sm:text-lg p-3 sm:p-4 rounded-2xl transition shadow-lg hover:shadow-xl"
+          >
+            {{ loading ? '⏳ Protegiendo datos...' : '✨ Generar Certificado Digital' }}
+          </button>
+        </form>
+      </div>
     </div>
 
-    <div v-else class="bg-white shadow-2xl rounded-3xl p-8 text-center border-2 border-green-100">
+    <!-- RESULTADO -->
+    <div v-else class="w-full md:max-w-3xl lg:max-w-4xl">
       <div
-        class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"
+        class="bg-white shadow-2xl rounded-2xl p-6 sm:p-8 md:p-12 text-center border-4 border-green-200"
       >
-        ✓
-      </div>
-      <h2 class="text-2xl font-bold text-gray-800 mb-2">¡Garantía Blindada!</h2>
-      <img :src="successData.qr" class="mx-auto w-48 h-48 my-4 p-2 bg-white border rounded-xl" />
-      <p class="text-[10px] text-gray-400 font-mono mb-6 break-all">{{ successData.hash }}</p>
-
-      <div class="flex flex-col gap-2">
-        <button
-          @click="descargarQR"
-          class="w-full bg-green-600 hover:bg-green-700 text-white p-3 rounded-xl font-bold transition"
+        <div
+          class="w-20 h-20 sm:w-24 sm:h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 text-4xl sm:text-5xl shadow-lg"
         >
-          📥 Descargar Imagen QR
-        </button>
-        <button @click="successData = null" class="text-gray-500 text-sm hover:text-gray-700">
-          ➕ Registrar otro equipo
-        </button>
+          ✓
+        </div>
+        <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-2 sm:mb-4">
+          ¡Garantía Registrada!
+        </h2>
+        <p class="text-gray-600 text-base sm:text-lg mb-6 sm:mb-8">
+          Tu certificado digital ha sido creado exitosamente
+        </p>
+        <div
+          class="bg-gray-50 p-4 sm:p-8 rounded-2xl border-2 border-gray-200 inline-block mb-6 sm:mb-8"
+        >
+          <img :src="successData.qr" alt="QR Code" class="w-48 h-48 sm:w-64 sm:h-64" />
+        </div>
+        <div class="bg-gray-100 p-3 sm:p-4 rounded-lg border border-gray-300 mb-6 sm:mb-8">
+          <p class="text-[10px] sm:text-xs text-gray-600 font-semibold uppercase mb-2">
+            Código Único (SHA-256):
+          </p>
+          <p
+            class="text-[10px] sm:text-xs text-gray-800 font-mono break-all bg-white p-2 sm:p-3 rounded border border-gray-200"
+          >
+            {{ successData.hash }}
+          </p>
+        </div>
+        <div class="space-y-3">
+          <button
+            @click="descargarQR"
+            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold text-base sm:text-lg p-3 sm:p-4 rounded-xl transition shadow-lg"
+          >
+            📥 Descargar Imagen QR
+          </button>
+          <button
+            @click="successData = null"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-base sm:text-lg p-3 sm:p-4 rounded-xl transition shadow-lg"
+          >
+            ➕ Registrar Otra Garantía
+          </button>
+        </div>
       </div>
     </div>
   </div>

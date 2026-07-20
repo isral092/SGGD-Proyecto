@@ -3,7 +3,6 @@ import RegistroForm from '../components/RegistroForm.vue'
 </script>
 
 <template>
-  <main>
-    <RegistroForm />
-  </main>
+  <!-- Sin wrappers con max-width, RegistroForm ya maneja su propio ancho -->
+  <RegistroForm />
 </template>

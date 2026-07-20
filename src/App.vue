@@ -1,85 +1,25 @@
 <script setup lang="ts">
-// No importar componentes aquí, el router se encarga
+import AppNavbar from './components/AppNavbar.vue'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const routeKey = computed(() => route.path)
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-100">
-    <!-- ENCABEZADO -->
-    <header class="bg-white shadow">
-      <div class="max-w-7xl mx-auto px-4 py-6">
-        <h1 class="text-4xl font-extrabold text-gray-900">Sistema SGGD</h1>
-        <p class="text-gray-600 text-sm mt-2">Gestor de Garantías Digitales</p>
-      </div>
-    </header>
-
-    <!-- CONTENIDO DINÁMICO (El router maneja qué mostrar) -->
-    <main class="flex flex-col items-center justify-center p-4 min-h-[calc(100vh-120px)]">
-      <router-view />
-      <!-- ✅ AQUÍ ES DONDE APARECEN LAS PÁGINAS -->
+  <div id="app" class="min-h-screen flex flex-col bg-gray-50">
+    <AppNavbar />
+    <main class="flex-1 w-full">
+      <!-- ✅ Key fuerza recarga del componente al cambiar ruta -->
+      <router-view :key="routeKey" />
     </main>
   </div>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
 }
 </style>

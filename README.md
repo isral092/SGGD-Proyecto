@@ -67,13 +67,9 @@ npm run test:e2e     # Playwright
 
 ```
 src/
-├── components/    # Vista (View) — UI reutilizable
-├── views/         # Vista (View) — páginas por ruta
-├── composables/   # ViewModel — lógica reactiva (Fase 2)
-├── services/      # Model — acceso a datos Supabase (Fase 2)
-├── stores/        # ViewModel — estado global Pinia (Fase 2)
-├── lib/           # Cliente Supabase, schemas Zod
-├── utils/         # Utilidades puras (hash, fechas)
+├── core/          # Infraestructura (Supabase, Zod, Utils)
+├── features/      # Módulos (Auth, Garantías, Roles) con UI, ViewModel y Model local
+├── shared/        # UI compartida (Navbar, Modales)
 └── router/        # Rutas y guards
 ```
 

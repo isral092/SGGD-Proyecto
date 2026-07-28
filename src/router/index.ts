@@ -30,7 +30,7 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('../views/LoginView.vue'),
+      component: () => import('../features/auth/AuthLogin.vue'),
       meta: { requiresAuth: false }, // ✅ Público, redirigir si ya está logueado
     },
 

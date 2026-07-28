@@ -2,7 +2,7 @@
 import AppNavbar from './components/AppNavbar.vue'
 import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/core/stores/useAuthStore'
+import { useAuthStore } from '@/features/auth/authStore'
 
 const route = useRoute()
 const routeKey = computed(() => route.path)

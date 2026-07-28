@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '@/core/config/supabaseClient'
 import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({

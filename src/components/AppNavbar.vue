@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '@/core/config/supabaseClient'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface LocalUser {

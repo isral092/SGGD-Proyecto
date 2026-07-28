@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '@/core/config/supabaseClient'
 import { garantiaRegistroSchema } from '../lib/schema'
 import { generarHashGarantia } from '../utils/cryptoUtils'
 import QRCode from 'qrcode'

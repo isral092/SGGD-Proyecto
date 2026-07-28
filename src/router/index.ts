@@ -10,7 +10,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
-      meta: { requiresAuth: false }, // ✅
+      meta: { requiresAuth: false },
     },
     {
       path: '/reclamaciones',
@@ -56,14 +56,6 @@ const router = createRouter({
       name: 'verificar',
       component: () => import('../views/VerificarGarantia.vue'),
       meta: { requiresAuth: false }, // ✅ Cualquiera puede verificar con QR
-    },
-
-    // ABOUT (OPCIONAL - PÚBLICO)
-    {
-      path: '/about',
-      name: 'about',
-      component: () => import('../views/AboutView.vue'),
-      meta: { requiresAuth: false },
     },
 
     // CATCH-ALL

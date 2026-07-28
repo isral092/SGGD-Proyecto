@@ -1,73 +1,82 @@
-# sggd-frontend
+# SGGD — Sistema de Garantías Digitales
 
-This template should help get you started developing with Vue 3 in Vite.
+Frontend del sistema para registrar, verificar y gestionar garantías de productos con certificados digitales (hash SHA-256 + código QR).
 
-## Recommended IDE Setup
+## Stack
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- Vue 3 + TypeScript + Vite
+- Vue Router + Pinia
+- Tailwind CSS 4
+- Supabase (Auth + PostgreSQL)
+- Zod (validación)
 
-## Recommended Browser Setup
+## Arquitectura
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+Este proyecto usa **MVVM**, el patrón natural de Vue 3. No MVC tradicional (ese encaja mejor en backends con controladores explícitos).
 
-## Type Support for `.vue` Imports in TS
+Ver la guía completa en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+## Configuración
 
 ```sh
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
+cp .env.example .env
+# Editar .env con credenciales de Supabase
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+### Variables de entorno
+
+| Variable | Requerida | Descripción |
+|----------|-----------|-------------|
+| `VITE_SUPABASE_URL` | Sí | URL del proyecto Supabase |
+| `VITE_SUPABASE_ANON_KEY` | Sí | Clave anónima de Supabase |
+| `VITE_APP_URL` | No | URL pública para QR (ej. en Vercel) |
+| `VITE_HASH_SALT` | No | Salt del hash; debe coincidir con garantías ya registradas |
+
+## Scripts
 
 ```sh
-npm run build
+npm run dev          # Servidor de desarrollo
+npm run build        # Build de producción
+npm run type-check   # Verificación de tipos
+npm run lint         # ESLint + Oxlint
+npm run test:unit    # Vitest
+npm run test:e2e     # Playwright
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+## Rutas principales
 
-```sh
-npm run test:unit
+| Ruta | Acceso | Descripción |
+|------|--------|-------------|
+| `/` | Público | Registro de garantías |
+| `/verificar/:hash` | Público | Verificación por QR |
+| `/login` | Público | Autenticación |
+| `/garantias` | Autenticado | Listado de garantías |
+| `/reclamaciones` | Autenticado | Gestión de reclamaciones |
+| `/perfil` | Autenticado | Perfil del usuario |
+| `/admin/roles` | Admin | Gestor de roles |
+
+## Roles
+
+- **admin** — Gestión de usuarios y roles
+- **empresa** — Registro y consulta de garantías
+- **cliente** — Consulta de perfil y verificación
+
+## Estructura del proyecto
+
+```
+src/
+├── components/    # Vista (View) — UI reutilizable
+├── views/         # Vista (View) — páginas por ruta
+├── composables/   # ViewModel — lógica reactiva (Fase 2)
+├── services/      # Model — acceso a datos Supabase (Fase 2)
+├── stores/        # ViewModel — estado global Pinia (Fase 2)
+├── lib/           # Cliente Supabase, schemas Zod
+├── utils/         # Utilidades puras (hash, fechas)
+└── router/        # Rutas y guards
 ```
 
-### Run End-to-End Tests with [Playwright](https://playwright.dev)
+## Despliegue
 
-```sh
-# Install browsers for the first run
-npx playwright install
-
-# When testing on CI, must build the project first
-npm run build
-
-# Runs the end-to-end tests
-npm run test:e2e
-# Runs the tests only on Chromium
-npm run test:e2e -- --project=chromium
-# Runs the tests of a specific file
-npm run test:e2e -- tests/example.spec.ts
-# Runs the tests in debug mode
-npm run test:e2e -- --debug
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+Configurado para Vercel (`vercel.json` con rewrites SPA). Definir las variables de entorno en el panel de Vercel.

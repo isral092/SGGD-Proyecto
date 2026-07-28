@@ -16,8 +16,6 @@ const isAdmin = ref<boolean>(false)
 const menuOpen = ref<boolean>(false)
 
 async function cargarPerfil(authUser: SupabaseUser): Promise<void> {
-  console.log('👤 Cargando perfil para:', authUser.email)
-
   user.value = { id: authUser.id, email: authUser.email || '' }
 
   const { data: profile, error } = await supabase
@@ -27,11 +25,9 @@ async function cargarPerfil(authUser: SupabaseUser): Promise<void> {
     .single()
 
   if (error) {
-    console.error('❌ Error trayendo perfil:', error.message)
     userRole.value = null
     isAdmin.value = false
   } else if (profile) {
-    console.log('✅ Rol detectado:', profile.rol)
     userRole.value = profile.rol
     isAdmin.value = profile.rol === 'admin'
   }
@@ -110,6 +106,7 @@ function getRoleLabel(role: string | null): string {
             👤 Mi Perfil
           </router-link>
           <router-link
+            v-if="user"
             to="/reclamaciones"
             class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-2"
             :class="
@@ -119,6 +116,7 @@ function getRoleLabel(role: string | null): string {
             Reclamaciones
           </router-link>
           <router-link
+            v-if="user"
             to="/garantias"
             class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-2"
             :class="$route.path === '/garantias' ? 'text-blue-600 border-b-2 border-blue-600' : ''"
@@ -198,6 +196,7 @@ function getRoleLabel(role: string | null): string {
           👤 Mi Perfil
         </router-link>
         <router-link
+          v-if="user"
           to="/reclamaciones"
           class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition"
           @click="closeMenu"
@@ -205,6 +204,7 @@ function getRoleLabel(role: string | null): string {
           📋 Reclamaciones
         </router-link>
         <router-link
+          v-if="user"
           to="/garantias"
           class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition"
           @click="closeMenu"

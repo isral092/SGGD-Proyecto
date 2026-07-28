@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { supabase } from '../lib/supabaseClient'
-import CryptoJS from 'crypto-js'
+import { garantiaRegistroSchema } from '../lib/schema'
+import { generarHashGarantia } from '../utils/cryptoUtils'
 import QRCode from 'qrcode'
 
 // --- ESTADO ---
@@ -28,10 +29,11 @@ const fechaVencimiento = computed(() => {
 })
 
 const validar = (): string | null => {
-  if (formData.value.numero_serie.length < 3) return 'Serial demasiado corto'
-  if (!formData.value.cliente_email.includes('@')) return 'Email inválido'
+  const result = garantiaRegistroSchema.safeParse(formData.value)
+  if (!result.success) {
+    return result.error.issues[0]?.message ?? 'Datos del formulario inválidos'
+  }
 
-  // ✅ Validar que la fecha de vencimiento sea real
   const venc = fechaVencimiento.value
   if (
     venc === undefined ||
@@ -53,16 +55,10 @@ async function handleSubmit() {
   errorMsg.value = null
 
   try {
-    // 1. Hash SHA-256 (Demostrativo para proyecto escolar)
-    const semilla = `${formData.value.numero_serie}-${formData.value.cliente_email}-PROYECTO_2024`
-    const hash = CryptoJS.SHA256(semilla).toString()
+    const hash = generarHashGarantia(formData.value.numero_serie, formData.value.cliente_email)
 
-    // 2. URL y QR
-    // ✅ AQUÍ ESTÁ LA SOLUCIÓN: usar variable de entorno
     const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
     const urlVerificacion = `${appUrl}/verificar/${hash}`
-
-    console.log('URL de verificación generada:', urlVerificacion) // Para debugging
 
     const qrImage = await QRCode.toDataURL(urlVerificacion)
 

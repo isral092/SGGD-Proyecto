@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { supabase } from '../lib/supabaseClient'
 
 const router = useRouter()
+const route = useRoute()
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
@@ -42,8 +43,11 @@ async function handleAuth() {
 
       if (signInError) throw signInError
 
-      // Redirigir al home
-      router.push('/')
+      const redirect =
+        typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
+          ? route.query.redirect
+          : '/'
+      router.push(redirect)
     }
   } catch (err: unknown) {
     if (err instanceof Error) {

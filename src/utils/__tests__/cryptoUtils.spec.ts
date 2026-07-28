@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generarHashGarantia } from '../cryptoUtils'
+import { generarHashGarantia } from '@/core/utils/cryptoUtils'
 
 describe('generarHashGarantia', () => {
   it('genera un hash SHA-256 determinístico', () => {

@@ -12,7 +12,8 @@ Frontend del sistema para registrar, verificar y gestionar garantías de product
 
 ## Arquitectura
 
-Este proyecto usa **MVVM**, el patrón natural de Vue 3. No MVC tradicional (ese encaja mejor en backends con controladores explícitos).
+Este proyecto sigue una arquitectura **Feature-based MVVM ligero** 
+(Features + Repositorios + Composables). No MVC tradicional.
 
 Ver la guía completa en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 

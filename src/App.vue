@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AppNavbar from './components/AppNavbar.vue'
+import AppNavbar from '@/shared/layout/AppNavbar.vue'
 import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/features/auth/authStore'

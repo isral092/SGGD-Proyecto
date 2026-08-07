@@ -15,8 +15,7 @@ onMounted(async () => {
 const traduzRol = (rol: string): string => {
   const traducciones: Record<string, string> = {
     admin: '👨‍💼 Administrador',
-    empresa: '🏢 Empresa',
-    cliente: '👤 Cliente'
+    empleado: '🏢 Empleado'
   }
   return traducciones[rol] || rol
 }
@@ -24,8 +23,7 @@ const traduzRol = (rol: string): string => {
 const colorRol = (rol: string): string => {
   const colores: Record<string, string> = {
     admin: 'bg-red-100 text-red-800 border-red-300',
-    empresa: 'bg-blue-100 text-blue-800 border-blue-300',
-    cliente: 'bg-green-100 text-green-800 border-green-300'
+    empleado: 'bg-blue-100 text-blue-800 border-blue-300'
   }
   return colores[rol] || 'bg-gray-100 text-gray-800'
 }

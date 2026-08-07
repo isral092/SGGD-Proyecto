@@ -1,77 +1,47 @@
 import { ref } from 'vue'
 import { garantiasRepo, type Garantia } from './garantiasRepo'
+import { useAsyncState } from '@/core/composables/useAsyncState'
 
 export function useGarantias() {
   const garantias = ref<Garantia[]>([])
   const garantiaActual = ref<Garantia | null>(null)
-  const loading = ref(false)
-  const error = ref<string | null>(null)
+  const { loading, error, execute } = useAsyncState()
 
   const loadGarantias = async () => {
-    loading.value = true
-    error.value = null
-    try {
-      garantias.value = await garantiasRepo.getGarantias()
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        error.value = err.message
-      } else {
-        error.value = 'Error al cargar garantías'
-      }
-    } finally {
-      loading.value = false
-    }
+    const data = await execute(() => garantiasRepo.getGarantias())
+    if (data) garantias.value = data
   }
 
   const verificarGarantia = async (hash: string) => {
-    loading.value = true
-    error.value = null
-    try {
-      const data = await garantiasRepo.getGarantiaByHash(hash)
+    const data = await execute(async () => {
+      const g = await garantiasRepo.getGarantiaByHash(hash)
       
       const hoy = new Date()
-      const vencimiento = new Date(data.fecha_vencimiento)
+      const vencimiento = new Date(g.fecha_vencimiento)
 
       if (hoy > vencimiento) {
-        data.estado_vigencia = 'VENCIDA'
+        g.estado_vigencia = 'VENCIDA'
       } else {
-        data.estado_vigencia = 'ACTIVA'
+        g.estado_vigencia = 'ACTIVA'
         const diferencia = vencimiento.getTime() - hoy.getTime()
-        data.dias_restantes = Math.ceil(diferencia / (1000 * 3600 * 24))
+        g.dias_restantes = Math.ceil(diferencia / (1000 * 3600 * 24))
       }
 
-      garantiaActual.value = data
-      
-      if (data.id) {
-        await garantiasRepo.registrarAuditoria(data.id)
+      if (g.id) {
+        await garantiasRepo.registrarAuditoria(g.id)
       }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        error.value = `Error al verificar: ${err.message}`
-      } else {
-        error.value = 'Ocurrió un error desconocido'
-      }
-    } finally {
-      loading.value = false
-    }
+      return g
+    })
+    
+    if (data) garantiaActual.value = data
   }
 
   const registrarGarantia = async (garantiaData: Garantia) => {
-    loading.value = true
-    error.value = null
-    try {
+    const success = await execute(async () => {
       await garantiasRepo.insertGarantia(garantiaData)
       return true
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        error.value = err.message
-      } else {
-        error.value = 'Error desconocido al registrar'
-      }
-      return false
-    } finally {
-      loading.value = false
-    }
+    })
+    return !!success
   }
 
   return {

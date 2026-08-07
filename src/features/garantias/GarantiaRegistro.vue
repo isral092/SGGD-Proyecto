@@ -1,31 +1,31 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { supabase } from '@/core/config/supabaseClient'
 import { garantiaRegistroSchema } from '@/core/utils/schema'
 import { generarHashGarantia } from '@/core/utils/cryptoUtils'
 import QRCode from 'qrcode'
+import { useGarantias } from './useGarantias'
 
-// --- ESTADO ---
+const { registrarGarantia, loading, error: composableError } = useGarantias()
+
 const formData = ref({
   numero_serie: '',
   modelo_producto: '',
   cliente_email: '',
-  fecha_venta: new Date().toISOString().split('T')[0],
+  fecha_venta: new Date().toISOString().slice(0, 10),
   duracion_meses: 12,
 })
 
-const loading = ref(false)
-const errorMsg = ref<string | null>(null)
+const localError = ref<string | null>(null)
 const successData = ref<{ qr: string; hash: string } | null>(null)
 
-// --- LÓGICA ---
-const fechaVencimiento = computed(() => {
+const errorMsg = computed(() => localError.value || composableError.value)
+
+const fechaVencimiento = computed<string>(() => {
   if (!formData.value.fecha_venta) return 'Esperando fecha...'
   const d = new Date(formData.value.fecha_venta)
-
   if (isNaN(d.getTime())) return 'Fecha inválida'
   d.setMonth(d.getMonth() + formData.value.duracion_meses)
-  return d.toISOString().split('T')[0]
+  return d.toISOString().slice(0, 10)
 })
 
 const validar = (): string | null => {
@@ -33,60 +33,38 @@ const validar = (): string | null => {
   if (!result.success) {
     return result.error.issues[0]?.message ?? 'Datos del formulario inválidos'
   }
-
   const venc = fechaVencimiento.value
-  if (
-    venc === undefined ||
-    venc === 'Esperando fecha...' ||
-    venc === 'Fecha inválida' ||
-    venc.length !== 10
-  ) {
+  if (venc === undefined || venc === 'Esperando fecha...' || venc === 'Fecha inválida' || venc.length !== 10) {
     return 'Fecha de venta o duración inválida'
   }
-
   return null
 }
 
 async function handleSubmit() {
+  localError.value = null
   const errorVal = validar()
-  if (errorVal) return (errorMsg.value = errorVal)
+  if (errorVal) {
+    localError.value = errorVal
+    return
+  }
 
-  loading.value = true
-  errorMsg.value = null
+  const hash = generarHashGarantia(formData.value.numero_serie, formData.value.cliente_email)
+  const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
+  const urlVerificacion = `${appUrl}/verificar/${hash}`
+  const qrImage = await QRCode.toDataURL(urlVerificacion)
 
-  try {
-    const hash = generarHashGarantia(formData.value.numero_serie, formData.value.cliente_email)
+  const success = await registrarGarantia({
+    ...formData.value,
+    fecha_vencimiento: fechaVencimiento.value,
+    hash_certificado: hash,
+    qr_url: urlVerificacion,
+  })
 
-    const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
-    const urlVerificacion = `${appUrl}/verificar/${hash}`
-
-    const qrImage = await QRCode.toDataURL(urlVerificacion)
-
-    // 3. Insertar en Supabase
-    const { error } = await supabase.from('garantias').insert([
-      {
-        ...formData.value,
-        fecha_vencimiento: fechaVencimiento.value,
-        hash_certificado: hash,
-        qr_url: urlVerificacion,
-      },
-    ])
-
-    if (error) {
-      if (error.code === '23505') throw new Error('Este número de serie ya está registrado')
-      throw error
-    }
-
+  if (success) {
     successData.value = { qr: qrImage, hash: hash }
-  } catch (err: unknown) {
-    const errorEncontrado = err as Error
-    errorMsg.value = errorEncontrado.message
-  } finally {
-    loading.value = false
   }
 }
 
-// --- ACCIONES EXTRAS ---
 const descargarQR = () => {
   const link = document.createElement('a')
   link.href = successData.value!.qr

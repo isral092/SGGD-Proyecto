@@ -1,44 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { supabase } from '@/core/config/supabaseClient'
+import { onMounted } from 'vue'
+import { useReclamaciones } from './useReclamaciones'
 
-interface GarantiaBasica {
-  numero_serie: string
-  modelo_producto: string
-  cliente_email: string
-}
-
-interface Reclamacion {
-  id: string
-  garantia_id: string
-  motivo_reclamacion: string
-  descripcion_detallada: string | null
-  estado_reclamacion: string
-  fecha_solicitud: string
-  garantias: GarantiaBasica | null
-}
-
-const reclamaciones = ref<Reclamacion[]>([])
-const loading = ref<boolean>(true)
-const error = ref<string | null>(null)
+const { reclamaciones, loading, error, loadReclamaciones } = useReclamaciones()
 
 onMounted(async () => {
-  try {
-    const { data, error: dbError } = await supabase
-      .from('reclamaciones')
-      .select('*, garantias(numero_serie, modelo_producto, cliente_email)')
-      .order('fecha_solicitud', { ascending: false })
-
-    if (dbError) throw dbError
-    reclamaciones.value = (data as Reclamacion[]) || []
-  } catch (err: unknown) {
-    error.value = err instanceof Error ? err.message : 'Error al cargar reclamaciones'
-  } finally {
-    loading.value = false
-  }
+  await loadReclamaciones()
 })
 
-function contactarCliente(email: string): void {
+function contactarCliente(email: string | undefined | null): void {
   if (!email) return
   window.location.href = `mailto:${email}?subject=Reclamación de garantía pendiente`
 }
@@ -60,7 +30,7 @@ function contactarCliente(email: string): void {
                   :class="rec.estado_reclamacion === 'pendiente' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'">
               {{ rec.estado_reclamacion.toUpperCase() }}
             </span>
-            <span class="text-sm text-gray-500">{{ new Date(rec.fecha_solicitud).toLocaleDateString('es-ES') }}</span>
+            <span class="text-sm text-gray-500">{{ rec.fecha_solicitud ? new Date(rec.fecha_solicitud).toLocaleDateString('es-ES') : '' }}</span>
           </div>
           <p class="font-semibold text-gray-900">{{ rec.garantias?.numero_serie }} - {{ rec.garantias?.modelo_producto }}</p>
           <p class="text-sm text-gray-600 mt-1">Motivo: {{ rec.motivo_reclamacion }}</p>

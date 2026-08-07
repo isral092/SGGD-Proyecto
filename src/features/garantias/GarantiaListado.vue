@@ -1,36 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { supabase } from '@/core/config/supabaseClient'
+import { onMounted } from 'vue'
+import { useGarantias } from './useGarantias'
 
-interface Garantia {
-  id: string
-  numero_serie: string
-  modelo_producto: string
-  cliente_email: string
-  fecha_venta: string
-  fecha_vencimiento: string
-  estado: string
-  created_at: string
-}
-
-const garantias = ref<Garantia[]>([])
-const loading = ref<boolean>(true)
-const error = ref<string | null>(null)
+const { garantias, loading, error, loadGarantias } = useGarantias()
 
 onMounted(async () => {
-  try {
-    const { data, error: dbError } = await supabase
-      .from('garantias')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (dbError) throw dbError
-    garantias.value = (data as Garantia[]) || []
-  } catch (err: unknown) {
-    error.value = err instanceof Error ? err.message : 'Error al cargar garantías'
-  } finally {
-    loading.value = false
-  }
+  await loadGarantias()
 })
 
 function calcularDiasRestantes(fechaVencimiento: string): number {
@@ -45,6 +20,11 @@ function obtenerEstadoVigencia(fechaVencimiento: string): string {
   if (dias < 0) return 'VENCIDA'
   if (dias <= 30) return 'POR VENCER'
   return 'ACTIVA'
+}
+
+function formatearFecha(fecha?: string): string {
+  if (!fecha) return 'N/A'
+  return new Date(fecha).toLocaleDateString('es-ES')
 }
 </script>
 
@@ -67,7 +47,7 @@ function obtenerEstadoVigencia(fechaVencimiento: string): string {
                             'bg-red-100 text-red-700'">
                 {{ obtenerEstadoVigencia(gar.fecha_vencimiento) }}
               </span>
-              <span class="text-sm text-gray-500">Registrada: {{ new Date(gar.created_at).toLocaleDateString('es-ES') }}</span>
+              <span class="text-sm text-gray-500">Registrada: {{ formatearFecha(gar.created_at) }}</span>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">

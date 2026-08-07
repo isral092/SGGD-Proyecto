@@ -6,6 +6,7 @@ export interface Perfil {
   nombre: string | null
   rol: string
   activo: boolean
+  created_at: string
 }
 
 export const usuariosRepo = {

@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '@/core/config/supabaseClient'
-import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -9,20 +8,20 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: HomeView,
+      component: () => import('../features/garantias/GarantiaRegistro.vue'),
       meta: { requiresAuth: false },
     },
     {
       path: '/reclamaciones',
       name: 'reclamaciones',
-      component: () => import('../views/ReclamacionesView.vue'),
+      component: () => import('../features/reclamaciones/ReclamacionListado.vue'),
       meta: { requiresAuth: true },
     },
 
     {
       path: '/garantias',
       name: 'garantias',
-      component: () => import('../views/GarantiasView.vue'),
+      component: () => import('../features/garantias/GarantiaListado.vue'),
       meta: { requiresAuth: true },
     },
 
@@ -54,7 +53,7 @@ const router = createRouter({
     {
       path: '/verificar/:hash',
       name: 'verificar',
-      component: () => import('../views/VerificarGarantia.vue'),
+      component: () => import('../features/garantias/GarantiaVerificacion.vue'),
       meta: { requiresAuth: false }, // ✅ Cualquiera puede verificar con QR
     },
 

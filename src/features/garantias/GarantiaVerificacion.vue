@@ -1,34 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { supabase } from '@/core/config/supabaseClient'
-
-// ============================================
-// INTERFACES Y TIPOS
-// ============================================
-
-interface Garantia {
-  id: string
-  numero_serie: string
-  modelo_producto: string
-  cliente_email: string
-  fecha_venta: string
-  fecha_vencimiento: string
-  hash_certificado: string
-  estado: string
-  dias_restantes?: number
-  estado_vigencia?: string
-}
-
-// ============================================
-// STATE
-// ============================================
+import { useGarantias } from './useGarantias'
+import { useReclamaciones } from '@/features/reclamaciones/useReclamaciones'
 
 const route = useRoute()
+const { garantiaActual: garantia, loading, error: composableError, verificarGarantia } = useGarantias()
+const { enviarReclamacion: submitReclamacion, error: reclamacionError } = useReclamaciones()
 
-const garantia = ref<Garantia | null>(null)
-const loading = ref(true)
-const error = ref<string | null>(null) // ✅ AQUÍ ESTÁ: "error" NO "errorMsg"
+const localError = ref<string | null>(null)
 const showReclamacion = ref(false)
 
 const formReclamacion = ref({
@@ -37,120 +17,39 @@ const formReclamacion = ref({
   evidencia_url: '',
 })
 
-// ============================================
-// CICLO DE VIDA
-// ============================================
-
 onMounted(async () => {
-  // Asegúrate de obtener el hash directamente del objeto route actual
   const currentHash = route.params.hash as string
-
   if (!currentHash) {
-    error.value = '❌ No se detectó un código de garantía en la URL.'
-    loading.value = false
+    localError.value = '❌ No se detectó un código de garantía en la URL.'
     return
   }
-
-  try {
-    // Buscar garantía por hash
-    const { data, error: dbError } = await supabase
-      .from('garantias')
-      .select('*')
-      .eq('hash_certificado', currentHash)
-      .single()
-
-    if (dbError || !data) {
-      error.value = '❌ Certificado no válido o no existe'
-      return
-    }
-
-    // Verificar si está vencida
-    const hoy = new Date()
-    const vencimiento = new Date(data.fecha_vencimiento)
-
-    if (hoy > vencimiento) {
-      data.estado_vigencia = 'VENCIDA'
-    } else {
-      data.estado_vigencia = 'ACTIVA'
-      // Calcular días restantes
-      const diferencia = vencimiento.getTime() - hoy.getTime()
-      data.dias_restantes = Math.ceil(diferencia / (1000 * 3600 * 24))
-    }
-
-    garantia.value = data as Garantia
-
-    // Registrar verificación en auditoría
-    await supabase.from('garantias_audit').insert([
-      {
-        garantia_id: data.id,
-        accion: 'VERIFICADA',
-        datos_nuevos: { verificacion: new Date().toISOString() },
-      },
-    ])
-  } catch (err: unknown) {
-    // ✅ FORMA CORRECTA DE MANEJAR ERRORES EN TYPESCRIPT
-    if (err instanceof Error) {
-      error.value = `Error al verificar: ${err.message}`
-    } else {
-      error.value = 'Ocurrió un error desconocido'
-    }
-    console.error('Error en onMounted:', err)
-  } finally {
-    loading.value = false
-  }
+  await verificarGarantia(currentHash)
 })
 
-// ============================================
-// FUNCIONES
-// ============================================
-
-/**
- * Enviar reclamación de la garantía
- */
 async function enviarReclamacion() {
-  // Validar que el motivo esté seleccionado
   if (!formReclamacion.value.motivo.trim()) {
     alert('⚠️ Por favor ingresa el motivo de la reclamación')
     return
   }
-
-  // Validar que exista una garantía cargada
-  if (!garantia.value) {
+  if (!garantia.value || !garantia.value.id) {
     alert('⚠️ Error: Garantía no encontrada')
     return
   }
 
-  try {
-    const { error: dbError } = await supabase.from('reclamaciones').insert([
-      {
-        garantia_id: garantia.value.id,
-        motivo_reclamacion: formReclamacion.value.motivo,
-        descripcion_detallada: formReclamacion.value.descripcion,
-        evidencia_url: formReclamacion.value.evidencia_url,
-        estado_reclamacion: 'pendiente',
-      },
-    ])
+  const success = await submitReclamacion({
+    garantia_id: garantia.value.id,
+    motivo_reclamacion: formReclamacion.value.motivo,
+    descripcion_detallada: formReclamacion.value.descripcion,
+    evidencia_url: formReclamacion.value.evidencia_url,
+    estado_reclamacion: 'pendiente',
+  })
 
-    if (dbError) {
-      throw dbError
-    }
-
-    // Éxito
+  if (success) {
     alert('✅ Reclamación enviada correctamente')
     showReclamacion.value = false
-    formReclamacion.value = {
-      motivo: '',
-      descripcion: '',
-      evidencia_url: '',
-    }
-  } catch (err: unknown) {
-    // ✅ FORMA CORRECTA
-    if (err instanceof Error) {
-      alert(`❌ Error: ${err.message}`)
-    } else {
-      alert('❌ Error desconocido al enviar reclamación')
-    }
-    console.error('Error en enviarReclamacion:', err)
+    formReclamacion.value = { motivo: '', descripcion: '', evidencia_url: '' }
+  } else {
+    alert(`❌ Error: ${reclamacionError.value}`)
   }
 }
 </script>
@@ -183,8 +82,8 @@ async function enviarReclamacion() {
       </div>
 
       <!-- ERROR -->
-      <div v-else-if="error" class="bg-red-100 border-l-4 border-red-600 p-6 rounded-lg">
-        <p class="text-red-800 font-bold text-lg">{{ error }}</p>
+      <div v-else-if="localError || composableError" class="bg-red-100 border-l-4 border-red-600 p-6 rounded-lg">
+        <p class="text-red-800 font-bold text-lg">{{ localError || composableError }}</p>
         <p class="text-red-600 text-sm mt-2">
           Por favor, verifica el código QR o contacta al vendedor.
         </p>

@@ -41,11 +41,32 @@ export function useUsuarios() {
     }
   }
 
+  const miPerfil = ref<Perfil | null>(null)
+
+  const loadMiPerfil = async (userId: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      miPerfil.value = await usuariosRepo.getPerfilById(userId)
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        error.value = err.message
+      } else {
+        error.value = 'Error desconocido al cargar el perfil'
+      }
+      console.error(err)
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     perfiles,
+    miPerfil,
     loading,
     error,
     loadPerfiles,
-    cambiarRol
+    cambiarRol,
+    loadMiPerfil
   }
 }

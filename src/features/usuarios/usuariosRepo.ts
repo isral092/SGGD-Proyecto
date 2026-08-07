@@ -26,5 +26,21 @@ export const usuariosRepo = {
       .eq('id', userId)
 
     if (error) throw error
+  },
+
+  async getPerfilById(userId: string): Promise<Perfil> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw new Error('El perfil no existe en la base de datos. Contacta al administrador.')
+      }
+      throw error
+    }
+    return data as Perfil
   }
 }

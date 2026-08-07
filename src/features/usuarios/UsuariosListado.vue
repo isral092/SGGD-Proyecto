@@ -4,7 +4,7 @@ import { useAuthStore } from '@/features/auth/authStore'
 import { useUsuarios } from './useUsuarios'
 
 const authStore = useAuthStore()
-const { perfiles, loading, error, loadPerfiles, cambiarRol } = useUsuarios()
+const { perfiles, loading, error, successMessage, loadPerfiles, cambiarRol } = useUsuarios()
 
 onMounted(async () => {
   if (authStore.isAdmin) {
@@ -22,6 +22,14 @@ onMounted(async () => {
         class="mb-6 p-6 bg-red-100 border-2 border-red-400 text-red-700 rounded-xl text-lg"
       >
         ❌ {{ error }}
+      </div>
+
+      <!-- ÉXITO -->
+      <div
+        v-if="successMessage"
+        class="mb-6 p-6 bg-green-100 border-2 border-green-400 text-green-700 rounded-xl text-lg font-semibold transition-all duration-300"
+      >
+        {{ successMessage }}
       </div>
 
       <!-- NO ES ADMIN -->
@@ -73,8 +81,7 @@ onMounted(async () => {
                   <span
                     :class="{
                       'bg-red-100 text-red-800': perfil.rol === 'admin',
-                      'bg-blue-100 text-blue-800': perfil.rol === 'empresa',
-                      'bg-green-100 text-green-800': perfil.rol === 'cliente',
+                      'bg-blue-100 text-blue-800': perfil.rol === 'empleado'
                     }"
                     class="inline-block px-4 py-2 rounded-full text-base font-bold border-2"
                   >
@@ -87,8 +94,7 @@ onMounted(async () => {
                     @change="(e) => cambiarRol(perfil.id, (e.target as HTMLSelectElement).value)"
                     class="px-4 py-3 border-2 border-gray-300 rounded-lg text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
-                    <option value="cliente">👤 Cliente</option>
-                    <option value="empresa">🏢 Empresa</option>
+                    <option value="empleado">🏢 Empleado</option>
                     <option value="admin">👨‍💼 Admin</option>
                   </select>
                 </td>

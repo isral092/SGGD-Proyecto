@@ -1,43 +1,22 @@
 import { ref } from 'vue'
 import { reclamacionesRepo, type Reclamacion } from './reclamacionesRepo'
+import { useAsyncState } from '@/core/composables/useAsyncState'
 
 export function useReclamaciones() {
   const reclamaciones = ref<Reclamacion[]>([])
-  const loading = ref(false)
-  const error = ref<string | null>(null)
+  const { loading, error, execute } = useAsyncState()
 
   const loadReclamaciones = async () => {
-    loading.value = true
-    error.value = null
-    try {
-      reclamaciones.value = await reclamacionesRepo.getReclamaciones()
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        error.value = err.message
-      } else {
-        error.value = 'Error al cargar reclamaciones'
-      }
-    } finally {
-      loading.value = false
-    }
+    const data = await execute(() => reclamacionesRepo.getReclamaciones())
+    if (data) reclamaciones.value = data
   }
-  
-  const enviarReclamacion = async (reclamacion: Reclamacion) => {
-    loading.value = true
-    error.value = null
-    try {
-      await reclamacionesRepo.insertReclamacion(reclamacion)
+
+  const enviarReclamacion = async (reclamacionData: Omit<Reclamacion, 'id' | 'created_at'>) => {
+    const success = await execute(async () => {
+      await reclamacionesRepo.insertReclamacion(reclamacionData as Reclamacion)
       return true
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        error.value = err.message
-      } else {
-        error.value = 'Error desconocido al enviar reclamación'
-      }
-      return false
-    } finally {
-      loading.value = false
-    }
+    })
+    return !!success
   }
 
   return {

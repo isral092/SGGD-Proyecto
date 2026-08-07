@@ -23,6 +23,7 @@ export const reclamacionesRepo = {
       .from('reclamaciones')
       .select('*, garantias(numero_serie, modelo_producto, cliente_email)')
       .order('fecha_solicitud', { ascending: false })
+      .limit(100)
 
     if (error) throw error
     return data as Reclamacion[]
@@ -31,5 +32,5 @@ export const reclamacionesRepo = {
   async insertReclamacion(reclamacion: Reclamacion): Promise<void> {
     const { error } = await supabase.from('reclamaciones').insert([reclamacion])
     if (error) throw error
-  }
+  },
 }

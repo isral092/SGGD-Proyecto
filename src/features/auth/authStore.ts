@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/core/config/supabaseClient'
-import type { User } from '@supabase/supabase-js'
+import type { User, Session } from '@supabase/supabase-js'
 
 interface Profile {
   id: string
@@ -11,12 +11,19 @@ interface Profile {
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const profile = ref<Profile | null>(null)
+  const sessionData = ref<Session | null>(null)
   const isInitialized = ref(false)
 
   const isAuthenticated = computed(() => !!user.value)
   const isAdmin = computed(() => profile.value?.rol === 'admin')
-  const isEmpresa = computed(() => profile.value?.rol === 'empresa')
-  const isCliente = computed(() => profile.value?.rol === 'cliente')
+  const isEmpleado = computed(() => profile.value?.rol === 'empleado')
+  
+  // Validar si el token expiró (comprobación en memoria, sin promesas)
+  const isSessionValid = computed(() => {
+    if (!sessionData.value?.expires_at) return !!user.value
+    // expires_at viene en segundos, Date.now() en ms.
+    return Date.now() < (sessionData.value.expires_at * 1000)
+  })
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -36,20 +43,28 @@ export const useAuthStore = defineStore('auth', () => {
     if (isInitialized.value) return
 
     // Revisar sesión actual
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user) {
-      user.value = session.user
-      await fetchProfile(session.user.id)
+    const { data } = await supabase.auth.getSession()
+    if (data.session?.user) {
+      user.value = data.session.user
+      sessionData.value = data.session
+      await fetchProfile(data.session.user.id)
     }
 
-    // Escuchar cambios en la autenticación (login, logout)
+    // Escuchar cambios
     supabase.auth.onAuthStateChange(async (event, session) => {
+      sessionData.value = session
       if (session?.user) {
         user.value = session.user
-        await fetchProfile(session.user.id)
+        if (!profile.value || profile.value.id !== session.user.id) {
+            await fetchProfile(session.user.id)
+        }
       } else {
         user.value = null
         profile.value = null
+        sessionData.value = null
+        if (window.location.pathname !== '/login') {
+            window.location.href = '/login'
+        }
       }
     })
 
@@ -59,11 +74,12 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user,
     profile,
+    sessionData,
     isInitialized,
     isAuthenticated,
     isAdmin,
-    isEmpresa,
-    isCliente,
+    isEmpleado,
+    isSessionValid,
     initialize
   }
 })

@@ -1,63 +1,51 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { supabase } from '@/core/config/supabaseClient'
+import { useAuthStore } from '@/features/auth/authStore'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // PÁGINA PRINCIPAL (REQUIERE AUTH)
     {
       path: '/',
       name: 'home',
       component: () => import('../features/garantias/GarantiaRegistro.vue'),
-      meta: { requiresAuth: false },
+      meta: { requiresAuth: true },
     },
     {
       path: '/reclamaciones',
       name: 'reclamaciones',
       component: () => import('../features/reclamaciones/ReclamacionListado.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, allowedRoles: ['admin', 'empleado'] },
     },
-
     {
       path: '/garantias',
       name: 'garantias',
       component: () => import('../features/garantias/GarantiaListado.vue'),
       meta: { requiresAuth: true },
     },
-
-    // LOGIN (PÚBLICO)
     {
       path: '/login',
       name: 'login',
       component: () => import('../features/auth/AuthLogin.vue'),
-      meta: { requiresAuth: false }, // ✅ Público, redirigir si ya está logueado
+      meta: { requiresAuth: false },
     },
-
-    // MI PERFIL (REQUIERE AUTH)
     {
       path: '/perfil',
       name: 'perfil',
       component: () => import('../features/usuarios/UsuarioPerfil.vue'),
       meta: { requiresAuth: true },
     },
-
-    // GESTOR DE ROLES (REQUIERE AUTH + ADMIN)
     {
       path: '/admin/roles',
       name: 'admin-roles',
       component: () => import('../features/usuarios/UsuariosListado.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
+      meta: { requiresAuth: true, allowedRoles: ['admin'] },
     },
-
-    // VERIFICACIÓN DE GARANTÍA (PÚBLICO)
     {
       path: '/verificar/:hash',
       name: 'verificar',
       component: () => import('../features/garantias/GarantiaVerificacion.vue'),
-      meta: { requiresAuth: false }, // ✅ Cualquiera puede verificar con QR
+      meta: { requiresAuth: false },
     },
-
-    // CATCH-ALL
     {
       path: '/:pathMatch(.*)*',
       redirect: '/',
@@ -65,43 +53,41 @@ const router = createRouter({
   ],
 })
 
-// ============================================
-// 🛡️ GUARD DE NAVEGACIÓN GLOBAL
-// ============================================
 router.beforeEach(async (to, from, next) => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const authStore = useAuthStore()
 
-  // Si la ruta requiere autenticación
-  if (to.meta.requiresAuth) {
-    if (!user) {
-      // No autenticado → redirigir a login
-      next({ name: 'login', query: { redirect: to.fullPath } })
-    } else {
-      // Verificar si requiere admin
-      if (to.meta.requiresAdmin) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('rol')
-          .eq('id', user.id)
-          .single()
-
-        if (profile?.rol !== 'admin') {
-          // No es admin → redirigir a home
-          next({ name: 'home' })
-          return
-        }
-      }
-      next() // ✅ Permitir acceso
-    }
+  if (!authStore.isInitialized) {
+    await authStore.initialize()
   }
-  // Si la ruta es pública pero ya está autenticado
-  else if (user && to.name === 'login') {
-    next({ name: 'home' }) // Redirigir a home
+
+  // Usar la comprobación en memoria súper rápida para evitar que el router se congele
+  // si supabase se queda colgado intentando refrescar el token
+  const isActuallyAuthenticated = authStore.isSessionValid
+
+  if (to.meta.requiresAuth) {
+    if (!isActuallyAuthenticated) {
+      next({ name: 'login', query: { redirect: to.fullPath } })
+      return
+    }
+
+    if (to.meta.allowedRoles) {
+      const allowedRoles = to.meta.allowedRoles as string[]
+      const userRole = authStore.profile?.rol
+
+      if (!userRole || !allowedRoles.includes(userRole)) {
+        next({ name: 'home' })
+        return
+      }
+    }
+    
+    next()
+  }
+  else if (isActuallyAuthenticated && to.name === 'login') {
+    next({ name: 'home' })
   } else {
-    next() // ✅ Permitir acceso a rutas públicas
+    next()
   }
 })
 
 export default router
+

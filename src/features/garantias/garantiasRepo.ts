@@ -29,6 +29,7 @@ export const garantiasRepo = {
       .from('garantias')
       .select('*')
       .order('created_at', { ascending: false })
+      .limit(100)
 
     if (error) throw error
     return data as Garantia[]

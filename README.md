@@ -66,12 +66,13 @@ npm run test:e2e     # Playwright
 
 ## Estructura del proyecto
 
-```
+```text
 src/
-├── core/          # Infraestructura (Supabase, Zod, Utils)
-├── features/      # Módulos (Auth, Garantías, Roles) con UI, ViewModel y Model local
-├── shared/        # UI compartida (Navbar, Modales)
-└── router/        # Rutas y guards
+├── assets/        # Estilos globales y recursos estáticos
+├── core/          # Infraestructura (Supabase, Utils, Zod Schemas)
+├── features/      # Módulos Verticales (auth, garantias, reclamaciones, usuarios)
+├── router/        # Configuración de Vue Router y guards
+└── shared/        # Componentes y layouts genéricos (AppNavbar, Icons)
 ```
 
 ## Despliegue

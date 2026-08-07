@@ -9,31 +9,29 @@ Esta arquitectura abandona la terminología confusa en favor de una estructura q
 
 Toda la aplicación se organiza bajo la siguiente jerarquía estricta:
 
-```
+```text
 src/
-├── core/                    # Infraestructura compartida (Sin lógica de negocio)
+├── assets/                  # CSS global e imágenes
+├── core/                    # Infraestructura compartida
 │   ├── config/
-│   │   └── supabase.ts      # Cliente Supabase (única instancia)
+│   │   └── supabaseClient.ts
 │   ├── types/
-│   │   └── supabase.ts      # Tipos base o generados de la DB
+│   │   └── supabase.ts
 │   └── utils/
-│       ├── crypto.ts        # Funciones puras (Hash, etc.)
-│       └── validation.ts    # Schemas Zod compartidos
+│       ├── __tests__/
+│       │   └── cryptoUtils.spec.ts
+│       ├── cryptoUtils.ts
+│       └── schema.ts
 │
 ├── features/                # Módulos de negocio (Vertical Slices)
-│   ├── auth/
-│   │   ├── AuthLogin.vue    # Vista/Componente
-│   │   ├── useAuth.ts       # Composable (ViewModel)
-│   │   └── authStore.ts     # Pinia store (Estado global)
-│   │
-│   ├── garantias/
-│   │   ├── GarantiaRegistro.vue
-│   │   ├── useGarantias.ts  # Composable (ViewModel)
-│   │   └── garantiasRepo.ts # Acceso a datos (Repository)
+│   ├── auth/                # Login y Store de Autenticación
+│   ├── garantias/           # Registro, Listado, Verificación
+│   ├── reclamaciones/       # Listado de reclamaciones
+│   └── usuarios/            # Perfil y Gestor de Roles
 │
-├── shared/                  # UI y Layouts genéricos
-│   ├── ui/                  # Componentes "tontos"
-│   └── layout/              # Estructuras de página
+├── shared/                  # UI genérica
+│   ├── icons/               # Iconos SVG como componentes Vue
+│   └── layout/
 │       └── AppNavbar.vue
 │
 ├── router/

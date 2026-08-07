@@ -1,10 +1,16 @@
 <script setup lang="ts">
-import AppNavbar from './components/AppNavbar.vue'
-import { computed } from 'vue'
+import AppNavbar from '@/shared/layout/AppNavbar.vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/features/auth/authStore'
 
 const route = useRoute()
 const routeKey = computed(() => route.path)
+const authStore = useAuthStore()
+
+onMounted(() => {
+  authStore.initialize()
+})
 </script>
 
 <template>

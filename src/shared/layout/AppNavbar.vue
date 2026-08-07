@@ -1,60 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/core/config/supabaseClient'
-import type { User as SupabaseUser } from '@supabase/supabase-js'
-
-interface LocalUser {
-  id: string
-  email: string
-}
+import { useAuthStore } from '@/features/auth/authStore'
 
 const router = useRouter()
-const user = ref<LocalUser | null>(null)
-const userRole = ref<string | null>(null)
-const isAdmin = ref<boolean>(false)
+const authStore = useAuthStore()
 const menuOpen = ref<boolean>(false)
-
-async function cargarPerfil(authUser: SupabaseUser): Promise<void> {
-  user.value = { id: authUser.id, email: authUser.email || '' }
-
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('rol')
-    .eq('id', authUser.id)
-    .single()
-
-  if (error) {
-    userRole.value = null
-    isAdmin.value = false
-  } else if (profile) {
-    userRole.value = profile.rol
-    isAdmin.value = profile.rol === 'admin'
-  }
-}
-
-onMounted(async () => {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  if (session?.user) {
-    await cargarPerfil(session.user)
-  }
-
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session?.user) {
-      await cargarPerfil(session.user)
-    } else if (event === 'SIGNED_OUT') {
-      user.value = null
-      userRole.value = null
-      isAdmin.value = false
-    }
-  })
-
-  onUnmounted(() => subscription.unsubscribe())
-})
 
 async function logout(): Promise<void> {
   await supabase.auth.signOut()
@@ -65,13 +17,13 @@ function closeMenu(): void {
   menuOpen.value = false
 }
 
-function getRoleLabel(role: string | null): string {
+function getRoleLabel(role: string | undefined): string {
+  if (!role) return 'Usuario'
   const labels: Record<string, string> = {
-    admin: '👨‍ Administrador',
-    empresa: '🏢 Empresa',
-    cliente: '👤 Cliente',
+    admin: '👨‍💼 Administrador',
+    empleado: '🏢 Empleado'
   }
-  return role ? labels[role] || 'Usuario' : 'Usuario'
+  return labels[role] || 'Usuario'
 }
 </script>
 
@@ -98,7 +50,7 @@ function getRoleLabel(role: string | null): string {
 
           <!-- MI PERFIL (SOLO SI AUTENTICADO) -->
           <router-link
-            v-if="user"
+            v-if="authStore.isAuthenticated"
             to="/perfil"
             class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-2"
             :class="$route.path === '/perfil' ? 'text-blue-600 border-b-2 border-blue-600' : ''"
@@ -106,7 +58,7 @@ function getRoleLabel(role: string | null): string {
             👤 Mi Perfil
           </router-link>
           <router-link
-            v-if="user"
+            v-if="authStore.isAuthenticated"
             to="/reclamaciones"
             class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-2"
             :class="
@@ -116,7 +68,7 @@ function getRoleLabel(role: string | null): string {
             Reclamaciones
           </router-link>
           <router-link
-            v-if="user"
+            v-if="authStore.isAuthenticated"
             to="/garantias"
             class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-2"
             :class="$route.path === '/garantias' ? 'text-blue-600 border-b-2 border-blue-600' : ''"
@@ -126,7 +78,7 @@ function getRoleLabel(role: string | null): string {
 
           <!-- ADMIN (SOLO SI ES ADMIN) -->
           <router-link
-            v-if="isAdmin"
+            v-if="authStore.isAdmin"
             to="/admin/roles"
             class="text-white bg-red-600 hover:bg-red-700 font-medium px-4 py-2 rounded-lg transition duration-200"
           >
@@ -134,11 +86,11 @@ function getRoleLabel(role: string | null): string {
           </router-link>
 
           <!-- SI ESTÁ AUTENTICADO -->
-          <div v-if="user" class="flex items-center gap-4 border-l pl-6">
+          <div v-if="authStore.isAuthenticated" class="flex items-center gap-4 border-l pl-6">
             <div class="text-right text-sm">
-              <p class="font-semibold text-gray-800">{{ user.email }}</p>
+              <p class="font-semibold text-gray-800">{{ authStore.user?.email }}</p>
               <p class="text-xs text-gray-600">
-                {{ getRoleLabel(userRole) }}
+                {{ getRoleLabel(authStore.profile?.rol) }}
               </p>
             </div>
             <button
@@ -188,7 +140,7 @@ function getRoleLabel(role: string | null): string {
         </router-link>
 
         <router-link
-          v-if="user"
+          v-if="authStore.isAuthenticated"
           to="/perfil"
           class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition"
           @click="closeMenu"
@@ -196,7 +148,7 @@ function getRoleLabel(role: string | null): string {
           👤 Mi Perfil
         </router-link>
         <router-link
-          v-if="user"
+          v-if="authStore.isAuthenticated"
           to="/reclamaciones"
           class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition"
           @click="closeMenu"
@@ -204,7 +156,7 @@ function getRoleLabel(role: string | null): string {
           📋 Reclamaciones
         </router-link>
         <router-link
-          v-if="user"
+          v-if="authStore.isAuthenticated"
           to="/garantias"
           class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition"
           @click="closeMenu"
@@ -213,7 +165,7 @@ function getRoleLabel(role: string | null): string {
         </router-link>
 
         <router-link
-          v-if="isAdmin"
+          v-if="authStore.isAdmin"
           to="/admin/roles"
           class="block px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded font-medium transition"
           @click="closeMenu"
@@ -222,7 +174,7 @@ function getRoleLabel(role: string | null): string {
         </router-link>
 
         <button
-          v-if="user"
+          v-if="authStore.isAuthenticated"
           @click="logout"
           class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-100 rounded transition"
         >
@@ -231,7 +183,7 @@ function getRoleLabel(role: string | null): string {
 
         <!-- LOGIN MOBILE (SOLO SI NO AUTENTICADO) -->
         <router-link
-          v-if="!user"
+          v-if="!authStore.isAuthenticated"
           to="/login"
           class="block px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded font-medium transition text-center"
           @click="closeMenu"

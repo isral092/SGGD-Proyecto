@@ -79,10 +79,9 @@ router.beforeEach(async (to, from, next) => {
         return
       }
     }
-    
+
     next()
-  }
-  else if (isActuallyAuthenticated && to.name === 'login') {
+  } else if (isActuallyAuthenticated && to.name === 'login') {
     next({ name: 'home' })
   } else {
     next()
@@ -90,4 +89,3 @@ router.beforeEach(async (to, from, next) => {
 })
 
 export default router
-

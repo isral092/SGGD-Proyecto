@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useGarantias } from './useGarantias'
 import { useReclamaciones } from '@/features/reclamaciones/useReclamaciones'
+import { enmascararEmail } from '@/core/utils/formatUtils'
 
 const route = useRoute()
 const { garantiaActual: garantia, loading, error: composableError, verificarGarantia } = useGarantias()
@@ -165,7 +166,7 @@ async function enviarReclamacion() {
           <!-- Email del cliente (verificación) -->
           <div class="bg-gray-50 p-4 rounded-lg mb-6">
             <p class="text-gray-500 text-sm uppercase font-bold">Email Registrado</p>
-            <p class="text-gray-900 font-mono">{{ garantia.cliente_email }}</p>
+            <p class="text-gray-900 font-mono">{{ enmascararEmail(garantia.cliente_email) }}</p>
           </div>
 
           <!-- Hash (Para transparencia) -->

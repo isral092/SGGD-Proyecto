@@ -17,7 +17,7 @@ const formData = ref({
 })
 
 const localError = ref<string | null>(null)
-const successData = ref<{ qr: string; hash: string } | null>(null)
+const successData = ref<{ qr: string; hash: string; serie: string } | null>(null)
 
 const errorMsg = computed(() => localError.value || composableError.value)
 
@@ -25,47 +25,58 @@ const fechaVencimiento = computed<string>(() =>
   calcularFechaVencimiento(formData.value.fecha_venta, formData.value.duracion_meses)
 )
 
-const validar = (): string | null => {
-  const result = garantiaRegistroSchema.safeParse(formData.value)
-  if (!result.success) {
-    return result.error.issues[0]?.message ?? 'Datos del formulario inválidos'
+function resetFormulario() {
+  formData.value = {
+    numero_serie: '',
+    modelo_producto: '',
+    cliente_email: '',
+    fecha_venta: obtenerFechaHoyISO(),
+    duracion_meses: 12,
   }
-  const venc = fechaVencimiento.value
-  if (venc === undefined || venc === 'Esperando fecha...' || venc === 'Fecha inválida' || venc.length !== 10) {
-    return 'Fecha de venta o duración inválida'
-  }
-  return null
+  localError.value = null
+  successData.value = null
 }
 
 async function handleSubmit() {
   localError.value = null
-  const errorVal = validar()
-  if (errorVal) {
-    localError.value = errorVal
+  const result = garantiaRegistroSchema.safeParse(formData.value)
+  if (!result.success) {
+    localError.value = result.error.issues[0]?.message ?? 'Datos del formulario inválidos'
     return
   }
 
-  const hash = generarHashGarantia(formData.value.numero_serie, formData.value.cliente_email)
+  const venc = fechaVencimiento.value
+  if (!venc || venc === 'Esperando fecha...' || venc === 'Fecha inválida' || venc.length !== 10) {
+    localError.value = 'Fecha de venta o duración inválida'
+    return
+  }
+
+  const datosLimpios = result.data
+  const hash = generarHashGarantia(datosLimpios.numero_serie, datosLimpios.cliente_email)
   const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
   const urlVerificacion = `${appUrl}/verificar/${hash}`
   const qrImage = await QRCode.toDataURL(urlVerificacion)
 
   const success = await registrarGarantia({
-    ...formData.value,
-    fecha_vencimiento: fechaVencimiento.value,
+    numero_serie: datosLimpios.numero_serie,
+    modelo_producto: datosLimpios.modelo_producto,
+    cliente_email: datosLimpios.cliente_email,
+    fecha_venta: datosLimpios.fecha_venta,
+    fecha_vencimiento: venc,
     hash_certificado: hash,
     qr_url: urlVerificacion,
   })
 
   if (success) {
-    successData.value = { qr: qrImage, hash: hash }
+    successData.value = { qr: qrImage, hash: hash, serie: datosLimpios.numero_serie }
   }
 }
 
 const descargarQR = () => {
+  if (!successData.value) return
   const link = document.createElement('a')
-  link.href = successData.value!.qr
-  link.download = `QR-${formData.value.numero_serie}.png`
+  link.href = successData.value.qr
+  link.download = `QR-${successData.value.serie}.png`
   link.click()
 }
 </script>
@@ -197,7 +208,7 @@ const descargarQR = () => {
             📥 Descargar Imagen QR
           </button>
           <button
-            @click="successData = null"
+            @click="resetFormulario"
             class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-base sm:text-lg p-3 sm:p-4 rounded-xl transition shadow-lg"
           >
             ➕ Registrar Otra Garantía

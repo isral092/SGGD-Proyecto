@@ -49,12 +49,16 @@ export const garantiasRepo = {
   },
 
   async registrarAuditoria(garantiaId: string) {
-    await supabase.from('garantias_audit').insert([
+    const { error } = await supabase.from('garantias_audit').insert([
       {
         garantia_id: garantiaId,
         accion: 'VERIFICADA',
         datos_nuevos: { verificacion: new Date().toISOString() },
       },
     ])
+    // La auditoría no debe bloquear la visualización pública del certificado si RLS restringe el insert anónimo
+    if (error) {
+      console.warn('No se pudo registrar auditoría de verificación:', error.message)
+    }
   }
 }

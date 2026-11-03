@@ -62,7 +62,7 @@ async function handleAuth() {
 </script>
 
 <template>
-  <div class="w-screen -ml-[calc((100vw-100%)/2)] min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center px-4 py-12">
+  <div class="auth-container w-screen -ml-[calc((100vw-100%)/2)] min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center px-4 py-12">
     <div class="max-w-md w-full">
       <!-- Logo -->
       <div class="text-center mb-12">
@@ -159,7 +159,7 @@ async function handleAuth() {
   }
 }
 
-div {
+.auth-container {
   animation: fadeIn 0.3s ease-in;
 }
 </style>

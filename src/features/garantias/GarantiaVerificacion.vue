@@ -17,6 +17,8 @@ const { enviarReclamacion: submitReclamacion, error: reclamacionError } = useRec
 
 const localError = ref<string | null>(null)
 const showReclamacion = ref(false)
+const reclamacionFormError = ref<string | null>(null)
+const reclamacionSuccessMsg = ref<string | null>(null)
 
 const formReclamacion = ref({
   motivo: '',
@@ -27,6 +29,8 @@ const formReclamacion = ref({
 async function cargarCertificado(hashParam: string | string[] | undefined) {
   localError.value = null
   showReclamacion.value = false
+  reclamacionFormError.value = null
+  reclamacionSuccessMsg.value = null
   const currentHash = Array.isArray(hashParam) ? hashParam[0] : hashParam
   if (!currentHash) {
     localError.value = '❌ No se detectó un código de garantía en la URL.'
@@ -49,12 +53,15 @@ watch(
 )
 
 async function enviarReclamacion() {
+  reclamacionFormError.value = null
+  reclamacionSuccessMsg.value = null
+
   if (!formReclamacion.value.motivo.trim()) {
-    alert('⚠️ Por favor ingresa el motivo de la reclamación')
+    reclamacionFormError.value = '⚠️ Por favor ingresa el motivo de la reclamación'
     return
   }
   if (!garantia.value || !garantia.value.id) {
-    alert('⚠️ Error: Garantía no encontrada')
+    reclamacionFormError.value = '⚠️ Error: Garantía no encontrada'
     return
   }
 
@@ -67,11 +74,11 @@ async function enviarReclamacion() {
   })
 
   if (success) {
-    alert('✅ Reclamación enviada correctamente')
+    reclamacionSuccessMsg.value = '✅ Reclamación enviada correctamente'
     showReclamacion.value = false
     formReclamacion.value = { motivo: '', descripcion: '', evidencia_url: '' }
   } else {
-    alert(`❌ Error: ${reclamacionError.value}`)
+    reclamacionFormError.value = `❌ Error: ${reclamacionError.value}`
   }
 }
 </script>
@@ -206,10 +213,18 @@ async function enviarReclamacion() {
           </details>
         </div>
 
+        <!-- MENSAJE DE ÉXITO DE RECLAMACIÓN -->
+        <div
+          v-if="reclamacionSuccessMsg"
+          class="bg-green-100 border-l-4 border-green-600 p-4 rounded-lg text-green-800 font-semibold"
+        >
+          {{ reclamacionSuccessMsg }}
+        </div>
+
         <!-- BOTÓN DE RECLAMACIÓN -->
         <button
           v-if="!showReclamacion && garantia.estado_vigencia === 'ACTIVA'"
-          @click="showReclamacion = true"
+          @click="showReclamacion = true; reclamacionSuccessMsg = null; reclamacionFormError = null"
           class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg"
         >
           🛠️ Hacer una Reclamación
@@ -221,6 +236,13 @@ async function enviarReclamacion() {
           class="bg-white rounded-2xl shadow-2xl p-8 border-2 border-blue-200"
         >
           <h2 class="text-2xl font-bold text-gray-800 mb-6">Registrar Reclamación</h2>
+
+          <div
+            v-if="reclamacionFormError"
+            class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-medium"
+          >
+            {{ reclamacionFormError }}
+          </div>
 
           <div class="space-y-4">
             <div>

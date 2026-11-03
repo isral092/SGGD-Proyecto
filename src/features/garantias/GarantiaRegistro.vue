@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { garantiaRegistroSchema } from '@/core/utils/schema'
 import { generarHashGarantia } from '@/core/utils/cryptoUtils'
+import { calcularFechaVencimiento, obtenerFechaHoyISO } from '@/core/utils/fechaUtils'
 import QRCode from 'qrcode'
 import { useGarantias } from './useGarantias'
 
@@ -11,7 +12,7 @@ const formData = ref({
   numero_serie: '',
   modelo_producto: '',
   cliente_email: '',
-  fecha_venta: new Date().toISOString().slice(0, 10),
+  fecha_venta: obtenerFechaHoyISO(),
   duracion_meses: 12,
 })
 
@@ -20,13 +21,9 @@ const successData = ref<{ qr: string; hash: string } | null>(null)
 
 const errorMsg = computed(() => localError.value || composableError.value)
 
-const fechaVencimiento = computed<string>(() => {
-  if (!formData.value.fecha_venta) return 'Esperando fecha...'
-  const d = new Date(formData.value.fecha_venta)
-  if (isNaN(d.getTime())) return 'Fecha inválida'
-  d.setMonth(d.getMonth() + formData.value.duracion_meses)
-  return d.toISOString().slice(0, 10)
-})
+const fechaVencimiento = computed<string>(() =>
+  calcularFechaVencimiento(formData.value.fecha_venta, formData.value.duracion_meses)
+)
 
 const validar = (): string | null => {
   const result = garantiaRegistroSchema.safeParse(formData.value)

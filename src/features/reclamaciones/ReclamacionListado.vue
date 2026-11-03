@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useReclamaciones } from './useReclamaciones'
+import { formatearFecha } from '@/core/utils/fechaUtils'
 
 const { reclamaciones, loading, error, loadReclamaciones } = useReclamaciones()
 
@@ -30,7 +31,7 @@ function contactarCliente(email: string | undefined | null): void {
                   :class="rec.estado_reclamacion === 'pendiente' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'">
               {{ rec.estado_reclamacion.toUpperCase() }}
             </span>
-            <span class="text-sm text-gray-500">{{ rec.fecha_solicitud ? new Date(rec.fecha_solicitud).toLocaleDateString('es-ES') : '' }}</span>
+            <span class="text-sm text-gray-500">{{ rec.fecha_solicitud ? formatearFecha(rec.fecha_solicitud) : '' }}</span>
           </div>
           <p class="font-semibold text-gray-900">{{ rec.garantias?.numero_serie }} - {{ rec.garantias?.modelo_producto }}</p>
           <p class="text-sm text-gray-600 mt-1">Motivo: {{ rec.motivo_reclamacion }}</p>

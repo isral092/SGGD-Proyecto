@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { garantiasRepo, type Garantia } from './garantiasRepo'
 import { useAsyncState } from '@/core/composables/useAsyncState'
+import { calcularDiasRestantes } from '@/core/utils/fechaUtils'
 
 export function useGarantias() {
   const garantias = ref<Garantia[]>([])
@@ -15,16 +16,13 @@ export function useGarantias() {
   const verificarGarantia = async (hash: string) => {
     const data = await execute(async () => {
       const g = await garantiasRepo.getGarantiaByHash(hash)
-      
-      const hoy = new Date()
-      const vencimiento = new Date(g.fecha_vencimiento)
 
-      if (hoy > vencimiento) {
+      const dias = calcularDiasRestantes(g.fecha_vencimiento)
+      if (dias < 0) {
         g.estado_vigencia = 'VENCIDA'
       } else {
         g.estado_vigencia = 'ACTIVA'
-        const diferencia = vencimiento.getTime() - hoy.getTime()
-        g.dias_restantes = Math.ceil(diferencia / (1000 * 3600 * 24))
+        g.dias_restantes = dias
       }
 
       if (g.id) {

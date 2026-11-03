@@ -4,9 +4,15 @@ import { useRoute } from 'vue-router'
 import { useGarantias } from './useGarantias'
 import { useReclamaciones } from '@/features/reclamaciones/useReclamaciones'
 import { enmascararEmail } from '@/core/utils/formatUtils'
+import { formatearFecha } from '@/core/utils/fechaUtils'
 
 const route = useRoute()
-const { garantiaActual: garantia, loading, error: composableError, verificarGarantia } = useGarantias()
+const {
+  garantiaActual: garantia,
+  loading,
+  error: composableError,
+  verificarGarantia,
+} = useGarantias()
 const { enviarReclamacion: submitReclamacion, error: reclamacionError } = useReclamaciones()
 
 const localError = ref<string | null>(null)
@@ -83,7 +89,10 @@ async function enviarReclamacion() {
       </div>
 
       <!-- ERROR -->
-      <div v-else-if="localError || composableError" class="bg-red-100 border-l-4 border-red-600 p-6 rounded-lg">
+      <div
+        v-else-if="localError || composableError"
+        class="bg-red-100 border-l-4 border-red-600 p-6 rounded-lg"
+      >
         <p class="text-red-800 font-bold text-lg">{{ localError || composableError }}</p>
         <p class="text-red-600 text-sm mt-2">
           Por favor, verifica el código QR o contacta al vendedor.
@@ -138,7 +147,7 @@ async function enviarReclamacion() {
             <div>
               <p class="text-gray-500 text-sm uppercase font-bold">Fecha de Venta</p>
               <p class="text-lg font-bold text-gray-900">
-                {{ new Date(garantia.fecha_venta).toLocaleDateString('es-ES') }}
+                {{ formatearFecha(garantia.fecha_venta) }}
               </p>
             </div>
             <div>
@@ -147,7 +156,7 @@ async function enviarReclamacion() {
                 class="text-lg font-bold"
                 :class="garantia.estado_vigencia === 'ACTIVA' ? 'text-green-600' : 'text-red-600'"
               >
-                {{ new Date(garantia.fecha_vencimiento).toLocaleDateString('es-ES') }}
+                {{ formatearFecha(garantia.fecha_vencimiento) }}
               </p>
             </div>
           </div>

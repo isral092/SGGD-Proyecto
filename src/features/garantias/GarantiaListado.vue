@@ -1,31 +1,13 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useGarantias } from './useGarantias'
+import { calcularDiasRestantes, obtenerEstadoVigencia, formatearFecha } from '@/core/utils/fechaUtils'
 
 const { garantias, loading, error, loadGarantias } = useGarantias()
 
 onMounted(async () => {
   await loadGarantias()
 })
-
-function calcularDiasRestantes(fechaVencimiento: string): number {
-  const hoy = new Date()
-  const vencimiento = new Date(fechaVencimiento)
-  const diferencia = vencimiento.getTime() - hoy.getTime()
-  return Math.ceil(diferencia / (1000 * 3600 * 24))
-}
-
-function obtenerEstadoVigencia(fechaVencimiento: string): string {
-  const dias = calcularDiasRestantes(fechaVencimiento)
-  if (dias < 0) return 'VENCIDA'
-  if (dias <= 30) return 'POR VENCER'
-  return 'ACTIVA'
-}
-
-function formatearFecha(fecha?: string): string {
-  if (!fecha) return 'N/A'
-  return new Date(fecha).toLocaleDateString('es-ES')
-}
 </script>
 
 <template>
@@ -66,7 +48,7 @@ function formatearFecha(fecha?: string): string {
               <div>
                 <p class="text-xs text-gray-500 uppercase font-semibold">Vencimiento</p>
                 <p class="font-medium" :class="obtenerEstadoVigencia(gar.fecha_vencimiento) === 'VENCIDA' ? 'text-red-600' : 'text-gray-900'">
-                  {{ new Date(gar.fecha_vencimiento).toLocaleDateString('es-ES') }}
+                  {{ formatearFecha(gar.fecha_vencimiento) }}
                   <span class="text-xs text-gray-500 ml-1">
                     ({{ calcularDiasRestantes(gar.fecha_vencimiento) }} días)
                   </span>

@@ -53,7 +53,7 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
 
   if (!authStore.isInitialized) {
@@ -66,8 +66,7 @@ router.beforeEach(async (to, from, next) => {
 
   if (to.meta.requiresAuth) {
     if (!isActuallyAuthenticated) {
-      next({ name: 'login', query: { redirect: to.fullPath } })
-      return
+      return { name: 'login', query: { redirect: to.fullPath } }
     }
 
     if (to.meta.allowedRoles) {
@@ -75,16 +74,15 @@ router.beforeEach(async (to, from, next) => {
       const userRole = authStore.profile?.rol
 
       if (!userRole || !allowedRoles.includes(userRole)) {
-        next({ name: 'home' })
-        return
+        return { name: 'home' }
       }
     }
 
-    next()
+    return true
   } else if (isActuallyAuthenticated && to.name === 'login') {
-    next({ name: 'home' })
+    return { name: 'home' }
   } else {
-    next()
+    return true
   }
 })
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useGarantias } from './useGarantias'
 import { useReclamaciones } from '@/features/reclamaciones/useReclamaciones'
@@ -24,14 +24,29 @@ const formReclamacion = ref({
   evidencia_url: '',
 })
 
-onMounted(async () => {
-  const currentHash = route.params.hash as string
+async function cargarCertificado(hashParam: string | string[] | undefined) {
+  localError.value = null
+  showReclamacion.value = false
+  const currentHash = Array.isArray(hashParam) ? hashParam[0] : hashParam
   if (!currentHash) {
     localError.value = '❌ No se detectó un código de garantía en la URL.'
     return
   }
   await verificarGarantia(currentHash)
+}
+
+onMounted(async () => {
+  await cargarCertificado(route.params.hash)
 })
+
+watch(
+  () => route.params.hash,
+  async (newHash) => {
+    if (newHash) {
+      await cargarCertificado(newHash)
+    }
+  }
+)
 
 async function enviarReclamacion() {
   if (!formReclamacion.value.motivo.trim()) {

@@ -5,12 +5,19 @@ export function useAsyncState() {
   const error = ref<string | null>(null)
   const successMessage = ref<string | null>(null)
 
-  const execute = async <T>(fn: () => Promise<T>): Promise<T | null> => {
+  const execute = async <T>(
+    fn: () => Promise<T>,
+    msgExito?: string
+  ): Promise<T | null> => {
     loading.value = true
     error.value = null
     successMessage.value = null
     try {
-      return await fn()
+      const result = await fn()
+      if (msgExito) {
+        successMessage.value = msgExito
+      }
+      return result
     } catch (err: unknown) {
       error.value = err instanceof Error ? err.message : 'Error desconocido'
       return null

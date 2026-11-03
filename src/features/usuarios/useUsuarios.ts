@@ -16,12 +16,11 @@ export function useUsuarios() {
     const success = await execute(async () => {
       await usuariosRepo.updateRol(userId, nuevoRol)
       return true
-    })
+    }, '✅ Rol actualizado correctamente')
     
     if (success) {
       const perfil = perfiles.value.find(p => p.id === userId)
       if (perfil) perfil.rol = nuevoRol
-      successMessage.value = '✅ Rol actualizado correctamente'
     }
   }
 

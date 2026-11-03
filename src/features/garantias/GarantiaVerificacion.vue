@@ -5,6 +5,7 @@ import { useGarantias } from './useGarantias'
 import { useReclamaciones } from '@/features/reclamaciones/useReclamaciones'
 import { enmascararEmail } from '@/core/utils/formatUtils'
 import { formatearFecha } from '@/core/utils/fechaUtils'
+import { reclamacionRegistroSchema } from '@/core/utils/schema'
 
 const route = useRoute()
 const {
@@ -13,7 +14,11 @@ const {
   error: composableError,
   verificarGarantia,
 } = useGarantias()
-const { enviarReclamacion: submitReclamacion, error: reclamacionError } = useReclamaciones()
+const {
+  enviarReclamacion: submitReclamacion,
+  loading: enviandoReclamacion,
+  error: reclamacionError,
+} = useReclamaciones()
 
 const localError = ref<string | null>(null)
 const showReclamacion = ref(false)
@@ -53,23 +58,27 @@ watch(
 )
 
 async function enviarReclamacion() {
+  if (enviandoReclamacion.value) return
   reclamacionFormError.value = null
   reclamacionSuccessMsg.value = null
 
-  if (!formReclamacion.value.motivo.trim()) {
-    reclamacionFormError.value = '⚠️ Por favor ingresa el motivo de la reclamación'
+  const validacion = reclamacionRegistroSchema.safeParse(formReclamacion.value)
+  if (!validacion.success) {
+    reclamacionFormError.value = `⚠️ ${validacion.error.issues[0]?.message ?? 'Datos de reclamación inválidos'}`
     return
   }
+
   if (!garantia.value || !garantia.value.id) {
     reclamacionFormError.value = '⚠️ Error: Garantía no encontrada'
     return
   }
 
+  const datosLimpios = validacion.data
   const success = await submitReclamacion({
     garantia_id: garantia.value.id,
-    motivo_reclamacion: formReclamacion.value.motivo,
-    descripcion_detallada: formReclamacion.value.descripcion,
-    evidencia_url: formReclamacion.value.evidencia_url,
+    motivo_reclamacion: datosLimpios.motivo,
+    descripcion_detallada: datosLimpios.descripcion || null,
+    evidencia_url: datosLimpios.evidencia_url || undefined,
     estado_reclamacion: 'pendiente',
   })
 
@@ -287,12 +296,14 @@ async function enviarReclamacion() {
 
             <div class="flex gap-4">
               <button
+                :disabled="enviandoReclamacion"
                 @click="enviarReclamacion"
-                class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition-all"
+                class="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 rounded-lg transition-all"
               >
-                ✅ Enviar Reclamación
+                {{ enviandoReclamacion ? '⏳ Enviando...' : '✅ Enviar Reclamación' }}
               </button>
               <button
+                :disabled="enviandoReclamacion"
                 @click="showReclamacion = false"
                 class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 rounded-lg transition-all"
               >

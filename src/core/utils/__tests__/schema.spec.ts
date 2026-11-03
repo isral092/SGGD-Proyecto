@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { garantiaRegistroSchema } from '../schema'
+import { garantiaRegistroSchema, reclamacionRegistroSchema } from '../schema'
 
 describe('schema - garantiaRegistroSchema', () => {
   it('limpia espacios en blanco y normaliza serie a mayusculas y email a minusculas', () => {
@@ -44,5 +44,39 @@ describe('schema - garantiaRegistroSchema', () => {
     })
 
     expect(res.success).toBe(false)
+  })
+})
+
+describe('schema - reclamacionRegistroSchema', () => {
+  it('acepta reclamacion con evidencia vacia o con URL http/https valida', () => {
+    const sinUrl = reclamacionRegistroSchema.safeParse({
+      motivo: 'defecto_fabricacion',
+      descripcion: '  Pantalla con linea vertical  ',
+      evidencia_url: '',
+    })
+    expect(sinUrl.success).toBe(true)
+
+    const conUrl = reclamacionRegistroSchema.safeParse({
+      motivo: 'averia',
+      descripcion: 'No enciende',
+      evidencia_url: 'https://ejemplo.com/evidencia.jpg',
+    })
+    expect(conUrl.success).toBe(true)
+  })
+
+  it('rechaza motivo vacio o URL de evidencia sin protocolo http/https', () => {
+    const motivoVacio = reclamacionRegistroSchema.safeParse({
+      motivo: '   ',
+      descripcion: 'Algo',
+      evidencia_url: '',
+    })
+    expect(motivoVacio.success).toBe(false)
+
+    const urlInvalida = reclamacionRegistroSchema.safeParse({
+      motivo: 'otro',
+      descripcion: 'Algo',
+      evidencia_url: 'texto-que-no-es-url',
+    })
+    expect(urlInvalida.success).toBe(false)
   })
 })

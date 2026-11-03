@@ -23,3 +23,18 @@ export type GarantiaRegistroInput = z.infer<typeof garantiaRegistroSchema>
 export const garantiaSchema = garantiaRegistroSchema.extend({
   fecha_vencimiento: z.string().trim().min(1, 'La fecha de vencimiento es obligatoria'),
 })
+
+/** Schema para creación de reclamación por parte del cliente */
+export const reclamacionRegistroSchema = z.object({
+  motivo: z.string().trim().min(1, 'Por favor selecciona el motivo de la reclamación'),
+  descripcion: z.string().trim().optional().default(''),
+  evidencia_url: z
+    .string()
+    .trim()
+    .optional()
+    .default('')
+    .refine(
+      (val) => val === '' || /^https?:\/\/.+/i.test(val),
+      'La URL de evidencia debe iniciar con http:// o https://'
+    ),
+})

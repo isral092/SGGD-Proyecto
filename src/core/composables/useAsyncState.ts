@@ -1,5 +1,15 @@
 import { ref } from 'vue'
 
+export function extraerMensajeError(err: unknown): string {
+  if (err instanceof Error) return err.message
+  if (typeof err === 'object' && err !== null && 'message' in err) {
+    const msg = (err as { message?: unknown }).message
+    if (typeof msg === 'string' && msg.trim().length > 0) return msg
+  }
+  if (typeof err === 'string' && err.trim().length > 0) return err
+  return 'Error desconocido'
+}
+
 export function useAsyncState() {
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -19,7 +29,7 @@ export function useAsyncState() {
       }
       return result
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Error desconocido'
+      error.value = extraerMensajeError(err)
       return null
     } finally {
       loading.value = false

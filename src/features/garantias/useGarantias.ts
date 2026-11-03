@@ -14,8 +14,13 @@ export function useGarantias() {
   }
 
   const verificarGarantia = async (hash: string) => {
+    garantiaActual.value = null
     const data = await execute(async () => {
-      const g = await garantiasRepo.getGarantiaByHash(hash)
+      const hashLimpio = hash.trim()
+      if (!hashLimpio) {
+        throw new Error('Certificado no válido o no existe')
+      }
+      const g = await garantiasRepo.getGarantiaByHash(hashLimpio)
 
       const dias = calcularDiasRestantes(g.fecha_vencimiento)
       if (dias < 0) {
@@ -26,7 +31,11 @@ export function useGarantias() {
       }
 
       if (g.id) {
-        await garantiasRepo.registrarAuditoria(g.id)
+        try {
+          await garantiasRepo.registrarAuditoria(g.id)
+        } catch {
+          // Ignorar fallos de red en auditoría para no bloquear la verificación al cliente
+        }
       }
       return g
     })

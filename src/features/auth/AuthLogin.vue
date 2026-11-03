@@ -9,35 +9,39 @@ const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref<string | null>(null)
+const successMsg = ref<string | null>(null)
 const isSignUp = ref(false)
 
 async function handleAuth() {
-  if (!email.value || !password.value) {
+  const emailLimpio = email.value.trim().toLowerCase()
+  error.value = null
+  successMsg.value = null
+
+  if (!emailLimpio || !password.value) {
     error.value = 'Por favor completa todos los campos'
     return
   }
 
   loading.value = true
-  error.value = null
 
   try {
     if (isSignUp.value) {
       // REGISTRO
       const { error: signUpError } = await supabase.auth.signUp({
-        email: email.value,
+        email: emailLimpio,
         password: password.value,
       })
 
       if (signUpError) throw signUpError
 
-      error.value = '✅ Registro exitoso. Por favor inicia sesión.'
+      successMsg.value = '✅ Registro exitoso. Por favor inicia sesión.'
       isSignUp.value = false
       email.value = ''
       password.value = ''
     } else {
       // LOGIN
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.value,
+        email: emailLimpio,
         password: password.value,
       })
 
@@ -77,15 +81,18 @@ async function handleAuth() {
           {{ isSignUp ? '📝 Crear Cuenta' : '🔐 Iniciar Sesión' }}
         </h2>
 
+        <!-- Éxito -->
+        <div
+          v-if="successMsg"
+          class="mb-6 p-4 rounded-lg text-sm font-medium bg-green-100 text-green-800 border border-green-200"
+        >
+          {{ successMsg }}
+        </div>
+
         <!-- Error -->
         <div
           v-if="error"
-          :class="[
-            'mb-6 p-4 rounded-lg text-sm font-medium',
-            error.includes('✅')
-              ? 'bg-green-100 text-green-800 border border-green-200'
-              : 'bg-red-100 text-red-800 border border-red-200'
-          ]"
+          class="mb-6 p-4 rounded-lg text-sm font-medium bg-red-100 text-red-800 border border-red-200"
         >
           {{ error }}
         </div>

@@ -13,17 +13,18 @@ export const useAuthStore = defineStore('auth', () => {
   const profile = ref<Profile | null>(null)
   const sessionData = ref<Session | null>(null)
   const isInitialized = ref(false)
+  let initPromise: Promise<void> | null = null
 
-  const isAuthenticated = computed(() => !!user.value)
-  const isAdmin = computed(() => profile.value?.rol === 'admin')
-  const isEmpleado = computed(() => profile.value?.rol === 'empleado')
-  
   // Validar si el token expiró (comprobación en memoria, sin promesas)
   const isSessionValid = computed(() => {
     if (!sessionData.value?.expires_at) return !!user.value
     // expires_at viene en segundos, Date.now() en ms.
     return Date.now() < (sessionData.value.expires_at * 1000)
   })
+
+  const isAuthenticated = computed(() => !!user.value && isSessionValid.value)
+  const isAdmin = computed(() => isAuthenticated.value && profile.value?.rol === 'admin')
+  const isEmpleado = computed(() => isAuthenticated.value && profile.value?.rol === 'empleado')
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -41,31 +42,40 @@ export const useAuthStore = defineStore('auth', () => {
 
   const initialize = async () => {
     if (isInitialized.value) return
+    if (initPromise) return initPromise
 
-    // Revisar sesión actual
-    const { data } = await supabase.auth.getSession()
-    if (data.session?.user) {
-      user.value = data.session.user
-      sessionData.value = data.session
-      await fetchProfile(data.session.user.id)
-    }
-
-    // Escuchar cambios
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      sessionData.value = session
-      if (session?.user) {
-        user.value = session.user
-        if (!profile.value || profile.value.id !== session.user.id) {
-            await fetchProfile(session.user.id)
+    initPromise = (async () => {
+      try {
+        // Revisar sesión actual
+        const { data } = await supabase.auth.getSession()
+        if (data?.session?.user) {
+          user.value = data.session.user
+          sessionData.value = data.session
+          await fetchProfile(data.session.user.id)
         }
-      } else {
-        user.value = null
-        profile.value = null
-        sessionData.value = null
-      }
-    })
 
-    isInitialized.value = true
+        // Escuchar cambios
+        supabase.auth.onAuthStateChange(async (_event, session) => {
+          sessionData.value = session
+          if (session?.user) {
+            user.value = session.user
+            if (!profile.value || profile.value.id !== session.user.id) {
+              await fetchProfile(session.user.id)
+            }
+          } else {
+            user.value = null
+            profile.value = null
+            sessionData.value = null
+          }
+        })
+
+        isInitialized.value = true
+      } finally {
+        initPromise = null
+      }
+    })()
+
+    return initPromise
   }
 
   return {

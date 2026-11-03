@@ -13,4 +13,10 @@ describe('generarHashGarantia', () => {
     const b = generarHashGarantia('SN-002', 'b@test.com')
     expect(a).not.toBe(b)
   })
+
+  it('normaliza espacios y mayusculas/minusculas en serie y email para producir el mismo hash', () => {
+    const base = generarHashGarantia('SN-990', 'cliente@ejemplo.com')
+    const conEspaciosYMayus = generarHashGarantia('  sn-990  ', '  CLIENTE@Ejemplo.com ')
+    expect(conEspaciosYMayus).toBe(base)
+  })
 })

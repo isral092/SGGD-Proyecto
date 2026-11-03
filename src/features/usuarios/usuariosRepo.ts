@@ -22,12 +22,16 @@ export const usuariosRepo = {
   },
 
   async updateRol(userId: string, nuevoRol: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .update({ rol: nuevoRol })
       .eq('id', userId)
+      .select('id, rol')
 
     if (error) throw error
+    if (!data || data.length === 0) {
+      throw new Error('No se pudo actualizar el rol. Verifica tus permisos de administrador en Supabase (RLS).')
+    }
   },
 
   async getPerfilById(userId: string): Promise<Perfil> {

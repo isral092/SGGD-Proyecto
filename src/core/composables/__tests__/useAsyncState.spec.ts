@@ -33,4 +33,14 @@ describe('useAsyncState', () => {
     expect(error.value).toBe('Fallo de conexión')
     expect(successMessage.value).toBeNull()
   })
+
+  it('extrae correctamente el mensaje de errores planos de Supabase (PostgrestError que no heredan de Error)', async () => {
+    const { error, execute } = useAsyncState()
+
+    await execute(async () => {
+      throw { message: 'new row violates row-level security policy', code: '42501' }
+    })
+
+    expect(error.value).toBe('new row violates row-level security policy')
+  })
 })

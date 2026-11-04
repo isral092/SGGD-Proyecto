@@ -78,4 +78,18 @@ describe('Router Security Guards', () => {
     // Verificamos que el guardia lo rebotó al Home (/)
     expect(router.currentRoute.value.path).toBe('/')
   })
+
+  // TEST 5: Usuario autenticado sin rol empresarial válido (sin bucle infinito)
+  it('redirige a /perfil si un usuario autenticado sin rol valido intenta acceder a / o /garantias', async () => {
+    const authStore = useAuthStore()
+    authStore.profile = { id: '2', rol: 'invitado' }
+    vi.spyOn(authStore, 'isSessionValid', 'get').mockReturnValue(true)
+    authStore.isInitialized = true
+
+    await router.push('/garantias')
+    expect(router.currentRoute.value.path).toBe('/perfil')
+
+    await router.push('/')
+    expect(router.currentRoute.value.path).toBe('/perfil')
+  })
 })

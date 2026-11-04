@@ -8,7 +8,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: () => import('../features/garantias/GarantiaRegistro.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, allowedRoles: ['admin', 'empleado'] },
     },
     {
       path: '/reclamaciones',
@@ -20,7 +20,7 @@ const router = createRouter({
       path: '/garantias',
       name: 'garantias',
       component: () => import('../features/garantias/GarantiaListado.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, allowedRoles: ['admin', 'empleado'] },
     },
     {
       path: '/login',
@@ -74,7 +74,13 @@ router.beforeEach(async (to) => {
       const userRole = authStore.profile?.rol
 
       if (!userRole || !allowedRoles.includes(userRole)) {
-        return { name: 'home' }
+        // Si el usuario es admin o empleado (ej. empleado intentando entrar a /admin/roles), mandarlo a home (/).
+        // Si no tiene rol válido ni para home, mandarlo a /perfil para evitar un bucle infinito de redirección.
+        const fallbackRoute =
+          userRole && ['admin', 'empleado'].includes(userRole) && to.name !== 'home'
+            ? 'home'
+            : 'perfil'
+        return { name: fallbackRoute }
       }
     }
 

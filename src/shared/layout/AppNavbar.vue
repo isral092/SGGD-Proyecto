@@ -39,8 +39,9 @@ function getRoleLabel(role: string | undefined): string {
 
         <!-- ✅ MENÚ DESKTOP (TU CÓDIGO IMPLEMENTADO) -->
         <div class="hidden md:flex items-center gap-6">
-          <!-- HOME -->
+          <!-- HOME (SOLO SI AUTENTICADO CON ROL EMPRESARIAL) -->
           <router-link
+            v-if="authStore.isAdmin || authStore.isEmpleado"
             to="/"
             class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-2"
             :class="$route.path === '/' ? 'text-blue-600 border-b-2 border-blue-600' : ''"
@@ -58,7 +59,7 @@ function getRoleLabel(role: string | undefined): string {
             👤 Mi Perfil
           </router-link>
           <router-link
-            v-if="authStore.isAuthenticated"
+            v-if="authStore.isAdmin || authStore.isEmpleado"
             to="/reclamaciones"
             class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-2"
             :class="
@@ -68,7 +69,7 @@ function getRoleLabel(role: string | undefined): string {
             Reclamaciones
           </router-link>
           <router-link
-            v-if="authStore.isAuthenticated"
+            v-if="authStore.isAdmin || authStore.isEmpleado"
             to="/garantias"
             class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-2"
             :class="$route.path === '/garantias' ? 'text-blue-600 border-b-2 border-blue-600' : ''"
@@ -132,6 +133,7 @@ function getRoleLabel(role: string | undefined): string {
       <!-- ✅ MENÚ MOBILE -->
       <div v-if="menuOpen" class="md:hidden border-t border-gray-200 py-4 space-y-3 bg-gray-50">
         <router-link
+          v-if="authStore.isAdmin || authStore.isEmpleado"
           to="/"
           class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition"
           @click="closeMenu"
@@ -148,7 +150,7 @@ function getRoleLabel(role: string | undefined): string {
           👤 Mi Perfil
         </router-link>
         <router-link
-          v-if="authStore.isAuthenticated"
+          v-if="authStore.isAdmin || authStore.isEmpleado"
           to="/reclamaciones"
           class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition"
           @click="closeMenu"
@@ -156,7 +158,7 @@ function getRoleLabel(role: string | undefined): string {
           📋 Reclamaciones
         </router-link>
         <router-link
-          v-if="authStore.isAuthenticated"
+          v-if="authStore.isAdmin || authStore.isEmpleado"
           to="/garantias"
           class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition"
           @click="closeMenu"

@@ -101,20 +101,11 @@ function getRoleLabel(role: string | undefined): string {
               Salir
             </button>
           </div>
-
-          <!-- SI NO ESTÁ AUTENTICADO -->
-          <div v-else class="border-l pl-6">
-            <router-link
-              to="/login"
-              class="text-white bg-blue-600 hover:bg-blue-700 font-bold px-6 py-2 rounded-lg transition"
-            >
-              🔐 Iniciar Sesión
-            </router-link>
-          </div>
         </div>
 
-        <!-- BOTÓN HAMBURGUESA (MOBILE) -->
+        <!-- BOTÓN HAMBURGUESA (MOBILE - SOLO SI ESTÁ AUTENTICADO) -->
         <button
+          v-if="authStore.isAuthenticated"
           @click="menuOpen = !menuOpen"
           class="md:hidden text-gray-700 hover:text-blue-600 transition"
           aria-label="Abrir menú"
@@ -131,7 +122,7 @@ function getRoleLabel(role: string | undefined): string {
       </div>
 
       <!-- ✅ MENÚ MOBILE -->
-      <div v-if="menuOpen" class="md:hidden border-t border-gray-200 py-4 space-y-3 bg-gray-50">
+      <div v-if="menuOpen && authStore.isAuthenticated" class="md:hidden border-t border-gray-200 py-4 space-y-3 bg-gray-50">
         <router-link
           v-if="authStore.isAdmin || authStore.isEmpleado"
           to="/"
@@ -142,7 +133,6 @@ function getRoleLabel(role: string | undefined): string {
         </router-link>
 
         <router-link
-          v-if="authStore.isAuthenticated"
           to="/perfil"
           class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded transition"
           @click="closeMenu"
@@ -176,22 +166,11 @@ function getRoleLabel(role: string | undefined): string {
         </router-link>
 
         <button
-          v-if="authStore.isAuthenticated"
           @click="logout"
           class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-100 rounded transition"
         >
           Salir
         </button>
-
-        <!-- LOGIN MOBILE (SOLO SI NO AUTENTICADO) -->
-        <router-link
-          v-if="!authStore.isAuthenticated"
-          to="/login"
-          class="block px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded font-medium transition text-center"
-          @click="closeMenu"
-        >
-          🔐 Iniciar Sesión
-        </router-link>
       </div>
     </div>
   </nav>

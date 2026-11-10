@@ -1,10 +1,65 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/features/auth/authStore'
 import { useUsuarios } from './useUsuarios'
+import { nuevoEmpleadoSchema } from '@/core/utils/schema'
 
 const authStore = useAuthStore()
-const { perfiles, loading, error, successMessage, loadPerfiles, cambiarRol } = useUsuarios()
+const {
+  perfiles,
+  loading,
+  error,
+  successMessage,
+  loadPerfiles,
+  cambiarRol,
+  registrarEmpleado,
+} = useUsuarios()
+
+const showModal = ref(false)
+const modalError = ref<string | null>(null)
+const guardandoEmpleado = ref(false)
+
+const nuevoEmpleado = ref({
+  nombre: '',
+  email: '',
+  password: '',
+  rol: 'empleado' as 'empleado' | 'admin',
+})
+
+function abrirModal() {
+  nuevoEmpleado.value = {
+    nombre: '',
+    email: '',
+    password: '',
+    rol: 'empleado',
+  }
+  modalError.value = null
+  showModal.value = true
+}
+
+function cerrarModal() {
+  showModal.value = false
+  modalError.value = null
+}
+
+async function handleCrearEmpleado() {
+  modalError.value = null
+  const validacion = nuevoEmpleadoSchema.safeParse(nuevoEmpleado.value)
+  if (!validacion.success) {
+    modalError.value = validacion.error.issues[0]?.message ?? 'Datos inválidos'
+    return
+  }
+
+  guardandoEmpleado.value = true
+  const ok = await registrarEmpleado(validacion.data)
+  guardandoEmpleado.value = false
+
+  if (ok) {
+    cerrarModal()
+  } else {
+    modalError.value = error.value ?? 'No se pudo registrar el empleado'
+  }
+}
 
 onMounted(async () => {
   if (authStore.isAdmin) {
@@ -43,12 +98,109 @@ onMounted(async () => {
 
       <!-- ES ADMIN -->
       <div v-else-if="authStore.isAdmin" class="w-full">
-        <!-- Título -->
-        <div class="w-full mb-8">
-          <h1 class="text-5xl font-bold text-gray-800 mb-2">👨‍💼 Gestor de Roles</h1>
-          <p class="text-gray-600 text-lg">
-            Administra los roles y permisos de los usuarios del sistema
-          </p>
+        <!-- Título y Acción de Alta -->
+        <div class="w-full mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 class="text-4xl sm:text-5xl font-bold text-gray-800 mb-2">👨‍💼 Gestor de Roles</h1>
+            <p class="text-gray-600 text-base sm:text-lg">
+              Administra los roles y da de alta a empleados autorizados en el sistema
+            </p>
+          </div>
+          <button
+            @click="abrirModal"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition duration-200"
+          >
+            <span>➕ Registrar Empleado</span>
+          </button>
+        </div>
+
+        <!-- MODAL PARA REGISTRAR EMPLEADO -->
+        <div
+          v-if="showModal"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        >
+          <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 border border-gray-100">
+            <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+              <h2 class="text-2xl font-bold text-gray-800">👤 Alta de Empleado</h2>
+              <button
+                @click="cerrarModal"
+                class="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                aria-label="Cerrar modal"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div
+              v-if="modalError"
+              class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-medium"
+            >
+              ⚠️ {{ modalError }}
+            </div>
+
+            <form @submit.prevent="handleCrearEmpleado" class="space-y-4">
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Nombre Completo *</label>
+                <input
+                  v-model="nuevoEmpleado.nombre"
+                  placeholder="Ej: Juan Perez"
+                  class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-gray-900 transition"
+                  required
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Email Corporativo *</label>
+                <input
+                  v-model="nuevoEmpleado.email"
+                  type="email"
+                  placeholder="empleado@empresa.com"
+                  class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-gray-900 transition"
+                  required
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Contraseña Temporal *</label>
+                <input
+                  v-model="nuevoEmpleado.password"
+                  type="password"
+                  placeholder="Mínimo 6 caracteres"
+                  class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-gray-900 transition"
+                  required
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Rol Inicial *</label>
+                <select
+                  v-model="nuevoEmpleado.rol"
+                  class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-gray-900 transition bg-white"
+                >
+                  <option value="empleado">🏢 Empleado</option>
+                  <option value="admin">👨‍💼 Administrador</option>
+                </select>
+              </div>
+
+              <div class="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  @click="cerrarModal"
+                  :disabled="guardandoEmpleado"
+                  class="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  :disabled="guardandoEmpleado"
+                  class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold rounded-xl transition shadow"
+                >
+                  {{ guardandoEmpleado ? '⏳ Guardando...' : 'Guardar Empleado' }}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
 
         <!-- CARGANDO -->

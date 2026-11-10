@@ -9,13 +9,10 @@ const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref<string | null>(null)
-const successMsg = ref<string | null>(null)
-const isSignUp = ref(false)
 
 async function handleAuth() {
   const emailLimpio = email.value.trim().toLowerCase()
   error.value = null
-  successMsg.value = null
 
   if (!emailLimpio || !password.value) {
     error.value = 'Por favor completa todos los campos'
@@ -25,34 +22,18 @@ async function handleAuth() {
   loading.value = true
 
   try {
-    if (isSignUp.value) {
-      // REGISTRO
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: emailLimpio,
-        password: password.value,
-      })
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: emailLimpio,
+      password: password.value,
+    })
 
-      if (signUpError) throw signUpError
+    if (signInError) throw signInError
 
-      successMsg.value = '✅ Registro exitoso. Por favor inicia sesión.'
-      isSignUp.value = false
-      email.value = ''
-      password.value = ''
-    } else {
-      // LOGIN
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: emailLimpio,
-        password: password.value,
-      })
-
-      if (signInError) throw signInError
-
-      const redirect =
-        typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
-          ? route.query.redirect
-          : '/'
-      router.push(redirect)
-    }
+    const redirect =
+      typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
+        ? route.query.redirect
+        : '/'
+    router.push(redirect)
   } catch (err: unknown) {
     if (err instanceof Error) {
       error.value = err.message
@@ -78,16 +59,8 @@ async function handleAuth() {
       <div class="bg-white rounded-2xl shadow-2xl p-10 border border-gray-100">
         <!-- Título -->
         <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">
-          {{ isSignUp ? '📝 Crear Cuenta' : '🔐 Iniciar Sesión' }}
+          🔐 Iniciar Sesión
         </h2>
-
-        <!-- Éxito -->
-        <div
-          v-if="successMsg"
-          class="mb-6 p-4 rounded-lg text-sm font-medium bg-green-100 text-green-800 border border-green-200"
-        >
-          {{ successMsg }}
-        </div>
 
         <!-- Error -->
         <div
@@ -128,21 +101,16 @@ async function handleAuth() {
             :disabled="loading"
             class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 text-white font-bold text-lg p-4 rounded-xl transition shadow-lg"
           >
-            {{ loading ? '⏳ Procesando...' : isSignUp ? '✅ Crear Cuenta' : '🔓 Entrar' }}
+            {{ loading ? '⏳ Procesando...' : '🔓 Entrar' }}
           </button>
         </form>
 
-        <!-- Toggle -->
-        <div class="text-center mt-8 pt-8 border-t border-gray-200">
-          <p class="text-gray-600 mb-3">
-            {{ isSignUp ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?' }}
+        <!-- Nota de Seguridad B2B (Sin autorregistro público) -->
+        <div class="text-center mt-8 pt-6 border-t border-gray-200">
+          <p class="text-xs text-gray-500 font-medium leading-relaxed">
+            🔒 Acceso exclusivo para personal autorizado de la empresa.<br />
+            Si requieres una cuenta, contacta al administrador del sistema.
           </p>
-          <button
-            @click="isSignUp = !isSignUp"
-            class="text-blue-600 hover:text-blue-700 font-bold text-lg transition"
-          >
-            {{ isSignUp ? '🔐 Inicia Sesión' : '📝 Crear Cuenta' }}
-          </button>
         </div>
       </div>
 

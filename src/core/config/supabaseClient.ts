@@ -11,3 +11,17 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+/**
+ * Cliente efímero sin persistencia de sesión en localStorage.
+ * Permite que un Administrador registre nuevas cuentas de empleados
+ * mediante `signUp` sin sobrescribir ni cerrar su propia sesión activa.
+ */
+export const createEphemeralClient = () =>
+  createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  })

@@ -17,6 +17,20 @@ export interface Garantia {
 
 export const garantiasRepo = {
   async insertGarantia(garantia: Garantia) {
+    const numSerie = garantia.numero_serie.trim()
+
+    // 1. Verificación previa de número de serie existente para respuesta inmediata y consistente
+    const { data: garantiaExistente } = await supabase
+      .from('garantias')
+      .select('id')
+      .eq('numero_serie', numSerie)
+      .maybeSingle()
+
+    if (garantiaExistente) {
+      throw new Error('Este número de serie ya se encuentra registrado')
+    }
+
+    // 2. Inserción con captura de restricción UNIQUE en base de datos
     const { error } = await supabase.from('garantias').insert([garantia])
     if (error) {
       if (

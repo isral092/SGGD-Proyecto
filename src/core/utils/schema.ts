@@ -38,3 +38,15 @@ export const reclamacionRegistroSchema = z.object({
       'La URL de evidencia debe iniciar con http:// o https://'
     ),
 })
+
+/** Schema para aprovisionamiento de empleados por el Administrador */
+export const nuevoEmpleadoSchema = z.object({
+  nombre: z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres'),
+  email: z.string().trim().toLowerCase().email('Email corporativo inválido'),
+  password: z.string().min(6, 'La contraseña temporal debe tener al menos 6 caracteres'),
+  rol: z.enum(['empleado', 'admin'], {
+    message: 'El rol debe ser empleado o admin',
+  }),
+})
+
+export type NuevoEmpleadoInput = z.infer<typeof nuevoEmpleadoSchema>

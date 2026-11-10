@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { garantiaRegistroSchema, reclamacionRegistroSchema } from '../schema'
+import {
+  garantiaRegistroSchema,
+  reclamacionRegistroSchema,
+  nuevoEmpleadoSchema,
+} from '../schema'
 
 describe('schema - garantiaRegistroSchema', () => {
   it('limpia espacios en blanco y normaliza serie a mayusculas y email a minusculas', () => {
@@ -73,5 +77,37 @@ describe('schema - reclamacionRegistroSchema', () => {
       evidencia_url: 'texto-que-no-es-url',
     })
     expect(urlInvalida.success).toBe(false)
+  })
+})
+
+describe('schema - nuevoEmpleadoSchema', () => {
+  it('valida y normaliza datos correctos para un nuevo empleado', () => {
+    const data = nuevoEmpleadoSchema.parse({
+      nombre: '  Carlos Gomez  ',
+      email: '  CARLOS@EMPRESA.COM ',
+      password: 'password123',
+      rol: 'empleado',
+    })
+    expect(data.nombre).toBe('Carlos Gomez')
+    expect(data.email).toBe('carlos@empresa.com')
+    expect(data.rol).toBe('empleado')
+  })
+
+  it('rechaza contraseñas de menos de 6 caracteres y roles invalidos', () => {
+    const passCorta = nuevoEmpleadoSchema.safeParse({
+      nombre: 'Ana',
+      email: 'ana@empresa.com',
+      password: '123',
+      rol: 'empleado',
+    })
+    expect(passCorta.success).toBe(false)
+
+    const rolInvalido = nuevoEmpleadoSchema.safeParse({
+      nombre: 'Ana',
+      email: 'ana@empresa.com',
+      password: 'password123',
+      rol: 'superadmin',
+    })
+    expect(rolInvalido.success).toBe(false)
   })
 })

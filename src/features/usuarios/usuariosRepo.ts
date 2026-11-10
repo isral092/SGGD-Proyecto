@@ -1,4 +1,5 @@
-import { supabase } from '@/core/config/supabaseClient'
+import { supabase, createEphemeralClient } from '@/core/config/supabaseClient'
+import type { NuevoEmpleadoInput } from '@/core/utils/schema'
 
 export interface Perfil {
   id: string
@@ -19,6 +20,37 @@ export const usuariosRepo = {
 
     if (error) throw error
     return data as Perfil[]
+  },
+
+  async crearEmpleado(nuevo: NuevoEmpleadoInput): Promise<void> {
+    const authClient = createEphemeralClient()
+    const { data, error } = await authClient.auth.signUp({
+      email: nuevo.email,
+      password: nuevo.password,
+      options: {
+        data: {
+          nombre: nuevo.nombre,
+          rol: nuevo.rol,
+        },
+      },
+    })
+
+    if (error) throw error
+
+    if (data.user) {
+      // Sincronizar explícitamente en la tabla profiles
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: data.user.id,
+        email: nuevo.email,
+        nombre: nuevo.nombre,
+        rol: nuevo.rol,
+        activo: true,
+      })
+
+      if (profileError) {
+        console.warn('Nota al sincronizar perfil:', profileError.message)
+      }
+    }
   },
 
   async updateRol(userId: string, nuevoRol: string): Promise<void> {

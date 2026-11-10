@@ -243,12 +243,19 @@ onMounted(async () => {
                 <td class="px-8 py-6">
                   <select
                     :value="perfil.rol"
+                    :disabled="perfil.id === authStore.user?.id"
                     @change="(e) => cambiarRol(perfil.id, (e.target as HTMLSelectElement).value)"
-                    class="px-4 py-3 border-2 border-gray-300 rounded-lg text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    class="px-4 py-3 border-2 border-gray-300 rounded-lg text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     <option value="empleado">🏢 Empleado</option>
                     <option value="admin">👨‍💼 Admin</option>
                   </select>
+                  <span
+                    v-if="perfil.id === authStore.user?.id"
+                    class="text-xs text-gray-500 block mt-1 font-semibold"
+                  >
+                    (Tu cuenta)
+                  </span>
                 </td>
               </tr>
             </tbody>

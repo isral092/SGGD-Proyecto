@@ -19,7 +19,13 @@ export const garantiasRepo = {
   async insertGarantia(garantia: Garantia) {
     const { error } = await supabase.from('garantias').insert([garantia])
     if (error) {
-      if (error.code === '23505') throw new Error('Este número de serie ya está registrado')
+      if (
+        error.code === '23505' ||
+        error.message.includes('unique constraint') ||
+        error.message.includes('duplicate key')
+      ) {
+        throw new Error('Este número de serie ya está registrado')
+      }
       throw error
     }
   },

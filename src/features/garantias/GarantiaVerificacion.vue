@@ -73,6 +73,11 @@ async function enviarReclamacion() {
     return
   }
 
+  if (garantia.value.estado_vigencia !== 'ACTIVA') {
+    reclamacionFormError.value = '⚠️ No es posible registrar reclamaciones sobre garantías vencidas'
+    return
+  }
+
   const datosLimpios = validacion.data
   const success = await submitReclamacion({
     garantia_id: garantia.value.id,

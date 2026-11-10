@@ -23,26 +23,53 @@ export const usuariosRepo = {
   },
 
   async crearEmpleado(nuevo: NuevoEmpleadoInput): Promise<void> {
+    const emailNormalizado = nuevo.email.trim().toLowerCase()
+
+    // 1. Verificación previa en profiles para respuesta inmediata
+    const { data: usuarioExistente } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', emailNormalizado)
+      .maybeSingle()
+
+    if (usuarioExistente) {
+      throw new Error('Este correo electrónico ya se encuentra registrado en el sistema')
+    }
+
     const authClient = createEphemeralClient()
     const { data, error } = await authClient.auth.signUp({
-      email: nuevo.email,
+      email: emailNormalizado,
       password: nuevo.password,
       options: {
         data: {
-          nombre: nuevo.nombre,
+          nombre: nuevo.nombre.trim(),
           rol: nuevo.rol,
         },
       },
     })
 
-    if (error) throw error
+    if (error) {
+      if (
+        error.message.toLowerCase().includes('already registered') ||
+        error.message.toLowerCase().includes('already exists') ||
+        error.status === 422
+      ) {
+        throw new Error('Este correo electrónico ya se encuentra registrado en el sistema')
+      }
+      throw error
+    }
+
+    // 2. Detección de ofuscación de Supabase (cuando el usuario ya existe y no lanza error)
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      throw new Error('Este correo electrónico ya se encuentra registrado en el sistema')
+    }
 
     if (data.user) {
       // Sincronizar explícitamente en la tabla profiles
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
-        email: nuevo.email,
-        nombre: nuevo.nombre,
+        email: emailNormalizado,
+        nombre: nuevo.nombre.trim(),
         rol: nuevo.rol,
         activo: true,
       })

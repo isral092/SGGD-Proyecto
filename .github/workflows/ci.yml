@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  VITE_SUPABASE_URL: https://test-project.supabase.co
+  VITE_SUPABASE_ANON_KEY: test-anon-key
+  VITE_HASH_SALT: test-salt-ci
+
+jobs:
+  verify:
+    name: Type-check, Lint, Unit Tests & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check (vue-tsc)
+        run: npm run type-check
+
+      - name: Lint (oxlint + eslint without --fix)
+        run: npm run lint:check
+
+      - name: Run unit tests (Vitest)
+        run: npx vitest run
+
+      - name: Build production bundle
+        run: npm run build

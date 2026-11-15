@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test'
 
-test('muestra el formulario de registro en la página principal', async ({ page }) => {
+test('redirige de / a /login cuando no hay sesión activa y muestra el acceso institucional', async ({
+  page,
+}) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Registro de Garantía Digital' })).toBeVisible()
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.getByRole('heading', { name: /Iniciar Sesión/i })).toBeVisible()
 })

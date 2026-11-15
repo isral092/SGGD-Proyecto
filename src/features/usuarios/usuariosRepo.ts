@@ -65,17 +65,22 @@ export const usuariosRepo = {
     }
 
     if (data.user) {
-      // Sincronizar explícitamente en la tabla profiles
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        id: data.user.id,
-        email: emailNormalizado,
-        nombre: nuevo.nombre.trim(),
-        rol: nuevo.rol,
-        activo: true,
-      })
+      // Activar y sincronizar explícitamente el perfil por parte del administrador
+      const { data: updatedProfile, error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          rol: nuevo.rol,
+          activo: true,
+          nombre: nuevo.nombre.trim(),
+        })
+        .eq('id', data.user.id)
+        .select('id')
 
       if (profileError) {
-        console.warn('Nota al sincronizar perfil:', profileError.message)
+        throw new Error(`Error al activar el empleado: ${profileError.message}`)
+      }
+      if (!updatedProfile || updatedProfile.length === 0) {
+        throw new Error('No se pudo activar el perfil del empleado. Verifica tus permisos de administrador (RLS).')
       }
     }
   },

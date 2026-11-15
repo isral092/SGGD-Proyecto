@@ -31,6 +31,12 @@ const formReclamacion = ref({
   evidencia_url: '',
 })
 
+function iniciarReclamacion() {
+  showReclamacion.value = true
+  reclamacionSuccessMsg.value = null
+  reclamacionFormError.value = null
+}
+
 async function cargarCertificado(hashParam: string | string[] | undefined) {
   localError.value = null
   showReclamacion.value = false
@@ -54,7 +60,7 @@ watch(
     if (newHash) {
       await cargarCertificado(newHash)
     }
-  }
+  },
 )
 
 async function enviarReclamacion() {
@@ -238,7 +244,7 @@ async function enviarReclamacion() {
         <!-- BOTÓN DE RECLAMACIÓN -->
         <button
           v-if="!showReclamacion && garantia.estado_vigencia === 'ACTIVA'"
-          @click="showReclamacion = true; reclamacionSuccessMsg = null; reclamacionFormError = null"
+          @click="iniciarReclamacion"
           class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg"
         >
           🛠️ Hacer una Reclamación

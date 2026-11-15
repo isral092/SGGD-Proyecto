@@ -30,13 +30,6 @@ export function useGarantias() {
         g.dias_restantes = dias
       }
 
-      if (g.id) {
-        try {
-          await garantiasRepo.registrarAuditoria(g.id)
-        } catch {
-          // Ignorar fallos de red en auditoría para no bloquear la verificación al cliente
-        }
-      }
       return g
     })
     

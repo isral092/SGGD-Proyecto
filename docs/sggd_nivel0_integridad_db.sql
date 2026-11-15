@@ -1,15 +1,12 @@
 -- =============================================================================
 -- SGGD - NIVEL 0: INTEGRIDAD Y ENDURECIMIENTO FINAL DE LA BASE DE DATOS
 -- =============================================================================
--- Incluye limpieza de datos de prueba en garantias/reclamaciones/auditoria
--- (conservando intactos los usuarios en public.profiles) para que todas las
--- restricciones CHECK e indices unicos entren 100% validados (convalidated = true).
+-- NOTA: la limpieza de datos de prueba que se ejecuto antes de este script (para que
+-- los CHECK e indices entraran validados) vive aparte en docs/one-off/ y esta bloqueada.
+-- Este archivo ya NO borra datos. Requiere que no existan series duplicadas ni estados invalidos.
 -- =============================================================================
 
 BEGIN;
-
--- 0.0 Limpieza de registros de prueba (conserva public.profiles intacto)
-TRUNCATE TABLE public.reclamaciones, public.garantias_audit, public.garantias CASCADE;
 
 -- 0.1 RLS activo en las 4 tablas (idempotente). Importante para garantias_audit,
 --     que ya no tiene politicas: con RLS activo queda cerrada; sin RLS quedaria abierta.

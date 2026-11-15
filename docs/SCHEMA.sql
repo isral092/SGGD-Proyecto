@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid NOT NULL,
   email text NOT NULL,
   nombre character varying NULL,
-  rol public.user_role NOT NULL DEFAULT 'empleado'::public.user_role,
+  -- Default 'cliente' (mínimo privilegio): una fila creada fuera del trigger NO obtiene acceso de personal.
+  rol public.user_role NOT NULL DEFAULT 'cliente'::public.user_role,
   empresa_id uuid NULL,
   activo boolean NULL DEFAULT true,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
@@ -215,6 +216,14 @@ BEGIN
 END;
 $$;
 
+-- Trigger de alta: crea el perfil (inactivo, rol empleado) al registrarse un usuario en Auth.
+-- Sin este trigger, un usuario nuevo no tendría fila en profiles.
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
 CREATE OR REPLACE FUNCTION public.proteger_columnas_profiles()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -295,34 +304,41 @@ REVOKE UPDATE ON public.reclamaciones FROM anon, authenticated;
 GRANT UPDATE (estado_reclamacion, notas_tecnico) ON public.reclamaciones TO authenticated;
 
 -- Políticas de profiles
+DROP POLICY IF EXISTS "Usuarios ven su propio perfil" ON public.profiles;
 CREATE POLICY "Usuarios ven su propio perfil"
   ON public.profiles FOR SELECT TO authenticated
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Admins ven todos los perfiles" ON public.profiles;
 CREATE POLICY "Admins ven todos los perfiles"
   ON public.profiles FOR SELECT TO authenticated
   USING (public.is_admin_check());
 
+DROP POLICY IF EXISTS "Usuarios actualizan su perfil" ON public.profiles;
 CREATE POLICY "Usuarios actualizan su perfil"
   ON public.profiles FOR UPDATE TO authenticated
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Solo admins asignan roles" ON public.profiles;
 CREATE POLICY "Solo admins asignan roles"
   ON public.profiles FOR UPDATE TO authenticated
   USING (public.is_admin_check())
   WITH CHECK (public.is_admin_check());
 
 -- Políticas de garantias
+DROP POLICY IF EXISTS "Staff registra garantias" ON public.garantias;
 CREATE POLICY "Staff registra garantias"
   ON public.garantias FOR INSERT TO authenticated
   WITH CHECK (public.is_staff());
 
+DROP POLICY IF EXISTS "Staff ve garantias" ON public.garantias;
 CREATE POLICY "Staff ve garantias"
   ON public.garantias FOR SELECT TO authenticated
   USING (public.is_staff());
 
 -- Políticas de reclamaciones
+DROP POLICY IF EXISTS "Reclamacion controlada" ON public.reclamaciones;
 CREATE POLICY "Reclamacion controlada"
   ON public.reclamaciones FOR INSERT TO anon, authenticated
   WITH CHECK (
@@ -332,10 +348,12 @@ CREATE POLICY "Reclamacion controlada"
     AND public.garantia_vigente(garantia_id)
   );
 
+DROP POLICY IF EXISTS "Staff ve reclamaciones" ON public.reclamaciones;
 CREATE POLICY "Staff ve reclamaciones"
   ON public.reclamaciones FOR SELECT TO authenticated
   USING (public.is_staff());
 
+DROP POLICY IF EXISTS "Staff actualiza reclamaciones" ON public.reclamaciones;
 CREATE POLICY "Staff actualiza reclamaciones"
   ON public.reclamaciones FOR UPDATE TO authenticated
   USING (public.is_staff())

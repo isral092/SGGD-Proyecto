@@ -69,15 +69,17 @@ router.beforeEach(async (to) => {
       return { name: 'login', query: { redirect: to.fullPath } }
     }
 
+    await authStore.ensureProfile()
+
     if (to.meta.allowedRoles) {
       const allowedRoles = to.meta.allowedRoles as string[]
-      const userRole = authStore.profile?.rol
+      const userRole = authStore.isActive ? authStore.profile?.rol : undefined
 
       if (!userRole || !allowedRoles.includes(userRole)) {
-        // Si el usuario es admin o empleado (ej. empleado intentando entrar a /admin/roles), mandarlo a home (/).
-        // Si no tiene rol válido ni para home, mandarlo a /perfil para evitar un bucle infinito de redirección.
+        // Si el usuario está activo con rol empresarial (ej. empleado intentando entrar a /admin/roles), mandarlo a home (/).
+        // Si está inactivo o no tiene rol válido, mandarlo a /perfil para evitar bucles infinitos.
         const fallbackRoute =
-          userRole && ['admin', 'empleado'].includes(userRole) && to.name !== 'home'
+          authStore.isActive && userRole && ['admin', 'empleado'].includes(userRole) && to.name !== 'home'
             ? 'home'
             : 'perfil'
         return { name: fallbackRoute }
@@ -86,7 +88,8 @@ router.beforeEach(async (to) => {
 
     return true
   } else if (isActuallyAuthenticated && to.name === 'login') {
-    return { name: 'home' }
+    await authStore.ensureProfile()
+    return { name: authStore.isActive ? 'home' : 'perfil' }
   } else {
     return true
   }

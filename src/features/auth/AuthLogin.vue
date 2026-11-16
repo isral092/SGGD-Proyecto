@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { supabase } from '@/core/config/supabaseClient'
 import { useAuthStore } from './authStore'
 
 const router = useRouter()
@@ -24,19 +23,7 @@ async function handleAuth() {
   loading.value = true
 
   try {
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email: emailLimpio,
-      password: password.value,
-    })
-
-    if (signInError) throw signInError
-
-    // Esperar a que el perfil quede sincronizado antes de navegar para evitar carreras en el guard
-    await authStore.syncSession(data.session)
-
-    if (authStore.profileError) {
-      throw new Error(`No se pudo cargar tu perfil: ${authStore.profileError}`)
-    }
+    await authStore.signIn(emailLimpio, password.value)
 
     const redirect =
       typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')

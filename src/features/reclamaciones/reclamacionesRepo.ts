@@ -31,6 +31,20 @@ export const reclamacionesRepo = {
 
   async insertReclamacion(reclamacion: Reclamacion): Promise<void> {
     const { error } = await supabase.from('reclamaciones').insert([reclamacion])
-    if (error) throw error
+    if (!error) return
+
+    // Errores de BD con significado de negocio: se traducen para el formulario público.
+    switch (error.code) {
+      case '23505': // índice único reclamaciones_una_abierta_por_garantia
+        throw new Error('Ya existe una reclamación en curso para este certificado.')
+      case '42501': // RLS: la garantía no existe o ya no está vigente
+        throw new Error('No se pudo registrar la reclamación. Verifica que la garantía siga vigente.')
+      case '23514': // CHECK: estado, longitud de textos o URL de evidencia
+        throw new Error(
+          'Los datos de la reclamación no son válidos. Revisa el motivo, la descripción y la URL de evidencia.',
+        )
+      default:
+        throw error
+    }
   },
 }

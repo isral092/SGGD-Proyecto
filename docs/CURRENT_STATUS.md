@@ -1,7 +1,7 @@
 # Estado Actual del Proyecto y Bitácora de Relevo (CURRENT_STATUS.md)
 
 > **Última actualización:** 16 de Noviembre de 2026  
-> **Estado de la suite de pruebas:** 54/54 tests unitarios en verde (100% pasando).  
+> **Estado de la suite de pruebas:** 66/66 tests unitarios en verde (100% pasando).  
 > **Linter:** 0 errores, 0 advertencias (`npm run lint:check`).  
 > **Build:** Exitoso y validado (`npm run build`).  
 > **Rama base:** `main` (protegida por GitHub Rulesets con CI obligatorio).
@@ -14,7 +14,7 @@ Si eres un agente de IA o un desarrollador nuevo en este repositorio:
 1. Lee las reglas permanentes en [AGENTS.md](file:///c:/Proyectos/sggd-frontend/AGENTS.md).
 2. Lee este documento para situarte en el punto exacto de avance.
 3. No reescribas ni modifiques módulos ya marcados como ✅ **Completados y Verificados**.
-4. Inicia directamente en la tarea correspondiente del **Plan Inmediato de PRs** (actualmente **PR A**).
+4. Inicia directamente en la tarea correspondiente del **Plan Inmediato de PRs** (actualmente **PR B** tras fusionar **PR A**).
 
 ---
 
@@ -27,35 +27,36 @@ Si eres un agente de IA o un desarrollador nuevo en este repositorio:
 | **P0 · Mapeo de errores PostgreSQL (PR #10)** | ✅ **Completado** | Mapeo de códigos `23505`, `42501` y `23514` a mensajes claros en `reclamacionesRepo.ts` (+5 tests). |
 | **Nivel 2 · Sesión reactiva & Auth Hardening (PR #11 y #12)** | ✅ **Completado** | Reloj reactivo `now = ref(Date.now())` con `setTimeout` acotado; listener GoTrue síncrono; carrera de perfiles (A-tarde / B-temprano) resuelta; desacoplamiento de capas (`signIn`/`signOut` en `authStore`); rollback automático si falla perfil; 54 tests en verde. |
 | **Limpieza de Vistas Inseguras (Supabase)** | ✅ **Completado** | Se ejecutó `DROP VIEW` sobre `garantias_activas_con_dias`, `reclamaciones_pendientes` y `profiles_activos`, cerrando los avisos críticos de *Security Definer View* en el asesor de seguridad de Supabase. |
+| **PR A · Ciclo de Vida de Reclamaciones (`feat/reclamaciones-ciclo`)** | ✅ **Completado** | `updateEstadoReclamacion` con lista blanca de columnas RLS (`estado_reclamacion`, `notas_tecnico`), `.select()` y mapeo de errores; helper anti-XSS `esUrlSegura`; UI con filtros por estado, badges, notas técnicas y `fecha_resolucion`; 66 tests unitarios en verde. |
 
 ---
 
 ## 📍 2. Punto Exacto de Avance (Dónde estamos parados hoy)
 
-- En el archivo local [src/shared/layout/AppNavbar.vue](file:///c:/Proyectos/sggd-frontend/src/shared/layout/AppNavbar.vue#L10-L18) ya se aplicó el micro-ajuste de agregar el bloque `catch` a la función `logout()` para prevenir excepciones no controladas de red al cerrar sesión.
-- Este cambio local está listo para integrarse y viajar dentro del primer commit de la rama del **PR A**.
+- La implementación de **PR A (`feat/reclamaciones-ciclo`)** está completa y verificada localmente (66/66 tests unitarios, 0 errores de linter, build limpio).
+- Lista para hacer commit, push y abrir Pull Request hacia `main`, para luego continuar con **PR B (`feat/baja-empleados`)**.
 
 ---
 
 ## 🚀 3. Hoja de Ruta Inmediata (Siguientes Pull Requests)
 
-### PR A · `feat/reclamaciones-ciclo` (Prioridad Alta - Próximo a ejecutar)
+### PR A · `feat/reclamaciones-ciclo` (✅ Implementado en rama actual)
 **Meta:** Permitir al personal técnico y administrativo gestionar el ciclo de vida de una reclamación de punta a punta.
 1. **`src/features/reclamaciones/reclamacionesRepo.ts`:**
-   - Crear método `updateEstadoReclamacion(id: string, nuevoEstado: ReclamacionEstado, notasTecnico?: string)`.
-   - Restringir la llamada para enviar **únicamente** las columnas autorizadas por RLS (`estado_reclamacion`, `notas_tecnico`).
-   - Encadenar `.select()` y arrojar error descriptivo si devuelve 0 filas afectadas.
-   - Extender la interfaz `Reclamacion` con campos `notas_tecnico`, `fecha_resolucion`, `descripcion_detallada`.
+   - Método `updateEstadoReclamacion(id: string, nuevoEstado: ReclamacionEstado, notasTecnico?: string)`.
+   - Restricción de columnas enviadas únicamente a las autorizadas por RLS (`estado_reclamacion`, `notas_tecnico`).
+   - Encadenamiento de `.select()` y error descriptivo si devuelve 0 filas afectadas.
+   - Interfaz `Reclamacion` extendida con `notas_tecnico`, `fecha_resolucion`, `descripcion_detallada`.
 2. **`src/features/reclamaciones/useReclamaciones.ts`:**
-   - Exponer `cambiarEstadoReclamacion(id, nuevoEstado, notasTecnico)`.
-   - Implementar helper de sanitización anti-XSS `esUrlSegura(url: string | null | undefined): boolean` (validar estrictamente `^https?://`).
+   - Exposición de `cambiarEstadoReclamacion(id, nuevoEstado, notasTecnico)`.
+   - Helper de sanitización anti-XSS `esUrlSegura(url: string | null | undefined): boolean` (validación estricta `^https?://`).
 3. **`src/features/reclamaciones/ReclamacionListado.vue`:**
-   - Mostrar `descripcion_detallada`, `notas_tecnico` y `fecha_resolucion`.
+   - Visualización de `descripcion_detallada`, `notas_tecnico` y `fecha_resolucion`.
    - Selector reactivo de estados con badges (`pendiente`, `en_revision`, `resuelta`, `rechazada`).
-   - Renderizar `evidencia_url` con `<a :href="url" target="_blank" rel="noopener noreferrer">` únicamente si `esUrlSegura(url)` es verdadero; de lo contrario, mostrar texto plano seguro.
+   - Renderizado de `evidencia_url` con `<a :href="url" target="_blank" rel="noopener noreferrer">` únicamente si `esUrlSegura(url)` es verdadero; de lo contrario, texto plano seguro.
    - Pestañas/filtros por estado.
 4. **Tests Unitarios:**
-   - Agregar pruebas unitarias en `reclamacionesRepo.spec.ts` y `useReclamaciones.spec.ts`.
+   - Pruebas unitarias en `reclamacionesRepo.spec.ts` (+7 tests) y `useReclamaciones.spec.ts` (+5 tests).
 
 ---
 

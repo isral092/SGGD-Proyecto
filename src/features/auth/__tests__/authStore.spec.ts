@@ -11,6 +11,8 @@ vi.mock('@/core/config/supabaseClient', () => ({
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
       onAuthStateChange: vi.fn(),
+      signInWithPassword: vi.fn(),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
     },
     from: vi.fn(() => ({
       select: vi.fn(() => ({
@@ -27,6 +29,7 @@ describe('authStore', () => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
     singleMock.mockResolvedValue({ data: { id: 'u1', rol: 'admin', activo: true }, error: null })
+    vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null })
   })
 
   afterEach(() => {
@@ -75,7 +78,7 @@ describe('authStore', () => {
     expect(store.isAdmin).toBe(false)
   })
 
-  it('bloquea permisos operativos (isActive/isAdmin/isEmpleado) cuando activo es false', () => {
+  it('bloquea permisos operativos (isActive/isAdmin/isEmpleado) cuando activo es false o el id del perfil no coincide', () => {
     const store = useAuthStore()
     store.user = { id: 'u2', email: 'baja@empresa.com' } as User
     store.sessionData = { expires_at: Math.floor(Date.now() / 1000) + 3600 } as Session
@@ -85,6 +88,65 @@ describe('authStore', () => {
     expect(store.isActive).toBe(false)
     expect(store.isAdmin).toBe(false)
     expect(store.isEmpleado).toBe(false)
+
+    // Perfil desincronizado de otro usuario
+    store.profile = { id: 'u-otro', rol: 'admin', activo: true }
+    expect(store.isActive).toBe(false)
+    expect(store.isAdmin).toBe(false)
+  })
+
+  it('descarta respuestas tardías de fetchProfile si el usuario cambió (carrera A-tarde / B-temprano)', async () => {
+    let authCallback: ((event: string, session: Session | null) => void) | undefined
+    vi.mocked(supabase.auth.onAuthStateChange).mockImplementation((cb) => {
+      authCallback = cb as (event: string, session: Session | null) => void
+      return { data: { subscription: { unsubscribe: vi.fn() } } } as unknown as ReturnType<
+        typeof supabase.auth.onAuthStateChange
+      >
+    })
+
+    let resolveA!: (val: { data: { id: string; rol: string; activo: boolean }; error: null }) => void
+    let resolveB!: (val: { data: { id: string; rol: string; activo: boolean }; error: null }) => void
+
+    singleMock
+      .mockImplementationOnce(() => new Promise((resolve) => (resolveA = resolve)))
+      .mockImplementationOnce(() => new Promise((resolve) => (resolveB = resolve)))
+
+    const store = useAuthStore()
+    await store.initialize()
+
+    const sesionA = {
+      user: { id: 'user-A', email: 'adminA@empresa.com' } as User,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+    } as Session
+
+    const sesionB = {
+      user: { id: 'user-B', email: 'empB@empresa.com' } as User,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+    } as Session
+
+    // 1. A inicia sesión (su petición queda en vuelo)
+    authCallback?.('SIGNED_IN', sesionA)
+
+    // 2. B inicia sesión antes de que responda A
+    authCallback?.('SIGNED_IN', sesionB)
+
+    // 3. Responde B primero (empleado)
+    resolveB({ data: { id: 'user-B', rol: 'empleado', activo: true }, error: null })
+    await store.ensureProfile()
+
+    expect(store.profile).toEqual({ id: 'user-B', rol: 'empleado', activo: true })
+    expect(store.isEmpleado).toBe(true)
+    expect(store.isAdmin).toBe(false)
+
+    // 4. Llega tarde la respuesta de A (admin): debe ser descartada
+    resolveA({ data: { id: 'user-A', rol: 'admin', activo: true }, error: null })
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(store.user?.id).toBe('user-B')
+    expect(store.profile).toEqual({ id: 'user-B', rol: 'empleado', activo: true })
+    expect(store.isAdmin).toBe(false)
+    expect(store.isEmpleado).toBe(true)
   })
 
   it('onAuthStateChange agenda la carga sin bloquear y syncSession/ensureProfile esperan el perfil', async () => {
@@ -107,17 +169,14 @@ describe('authStore', () => {
     const store = useAuthStore()
     await store.initialize()
 
-    // Simulamos login disparando onAuthStateChange
     const nuevaSesion = {
       user: { id: 'u-nuevo', email: 'nuevo@empresa.com' } as User,
       expires_at: Math.floor(Date.now() / 1000) + 3600,
     } as Session
 
     authCallback?.('SIGNED_IN', nuevaSesion)
-    // El perfil aún está cargando en segundo plano
     expect(store.profile).toBeNull()
 
-    // syncSession / ensureProfile espera la misma promesa en curso sin duplicar peticiones
     const espera = store.syncSession(nuevaSesion)
     expect(singleMock).toHaveBeenCalledTimes(1)
 
@@ -128,20 +187,50 @@ describe('authStore', () => {
     expect(store.isEmpleado).toBe(true)
   })
 
-  it('registra profileError cuando fetchProfile falla por red o permisos', async () => {
+  it('signIn autentica, carga el perfil y limpia la sesión con signOut si fetchProfile falla', async () => {
+    const mockSession = {
+      user: { id: 'u-err', email: 'err@empresa.com' } as User,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+    } as Session
+
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
+      data: { user: mockSession.user, session: mockSession },
+      error: null,
+    } as unknown as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>)
+
     singleMock.mockResolvedValueOnce({
       data: null,
       error: { message: 'Failed to fetch profile' },
     })
 
     const store = useAuthStore()
-    await store.syncSession({
-      user: { id: 'u-err', email: 'err@empresa.com' } as User,
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
-    } as Session)
+    await expect(store.signIn('  ERR@empresa.com  ', 'secreto123')).rejects.toThrow(
+      'No se pudo cargar tu perfil: Failed to fetch profile',
+    )
 
+    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: 'err@empresa.com',
+      password: 'secreto123',
+    })
+    expect(supabase.auth.signOut).toHaveBeenCalledTimes(1)
+    expect(store.user).toBeNull()
+    expect(store.sessionData).toBeNull()
+    expect(store.isAuthenticated).toBe(false)
+  })
+
+  it('signOut limpia completamente el estado de usuario, perfil y sesión', async () => {
+    const store = useAuthStore()
+    store.user = { id: 'u1', email: 'admin@empresa.com' } as User
+    store.profile = { id: 'u1', rol: 'admin', activo: true }
+    store.sessionData = { expires_at: Math.floor(Date.now() / 1000) + 3600 } as Session
+
+    await store.signOut()
+
+    expect(supabase.auth.signOut).toHaveBeenCalledTimes(1)
+    expect(store.user).toBeNull()
     expect(store.profile).toBeNull()
-    expect(store.profileError).toBe('Failed to fetch profile')
+    expect(store.sessionData).toBeNull()
+    expect(store.isAuthenticated).toBe(false)
   })
 
   it('initialize evita registrar multiples listeners si se invoca concurrentemente', async () => {

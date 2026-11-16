@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '@/core/config/supabaseClient'
 import { useAuthStore } from '@/features/auth/authStore'
 
 const router = useRouter()
@@ -9,8 +8,11 @@ const authStore = useAuthStore()
 const menuOpen = ref<boolean>(false)
 
 async function logout(): Promise<void> {
-  await supabase.auth.signOut()
-  router.push('/login')
+  try {
+    await authStore.signOut()
+  } finally {
+    router.push('/login')
+  }
 }
 
 function closeMenu(): void {

@@ -19,6 +19,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   let initPromise: Promise<void> | null = null
   let profilePromise: Promise<void> | null = null
+  let profileLoadingUserId: string | null = null
   let expirationTimer: ReturnType<typeof setTimeout> | null = null
 
   const clearExpirationTimer = () => {
@@ -59,7 +60,12 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   const isAuthenticated = computed(() => !!user.value && isSessionValid.value)
-  const isActive = computed(() => isAuthenticated.value && profile.value?.activo === true)
+  const isActive = computed(
+    () =>
+      isAuthenticated.value &&
+      profile.value?.id === user.value?.id &&
+      profile.value?.activo === true,
+  )
   const isAdmin = computed(() => isActive.value && profile.value?.rol === 'admin')
   const isEmpleado = computed(() => isActive.value && profile.value?.rol === 'empleado')
 
@@ -70,6 +76,9 @@ export const useAuthStore = defineStore('auth', () => {
       .select('id, rol, activo')
       .eq('id', userId)
       .single()
+
+    // Descartar respuesta obsoleta si el usuario cambió mientras la petición estaba en vuelo
+    if (user.value?.id !== userId) return
 
     if (!error && data) {
       profile.value = {
@@ -86,11 +95,18 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const startProfileLoad = (userId: string): Promise<void> => {
-    if (profilePromise) return profilePromise
-    profilePromise = fetchProfile(userId).finally(() => {
-      profilePromise = null
+    if (profilePromise && profileLoadingUserId === userId) {
+      return profilePromise
+    }
+    profileLoadingUserId = userId
+    const currentPromise = fetchProfile(userId).finally(() => {
+      if (profilePromise === currentPromise) {
+        profilePromise = null
+        profileLoadingUserId = null
+      }
     })
-    return profilePromise
+    profilePromise = currentPromise
+    return currentPromise
   }
 
   /**
@@ -99,7 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const ensureProfile = async (): Promise<void> => {
     if (!user.value || !isSessionValid.value) return
-    if (profilePromise) {
+    if (profilePromise && profileLoadingUserId === user.value.id) {
       await profilePromise
       return
     }
@@ -109,8 +125,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Sincroniza explícitamente una sesión recién obtenida (ej. tras signInWithPassword)
-   * y espera a que el perfil quede disponible antes de navegar.
+   * Sincroniza explícitamente una sesión recién obtenida y espera a que el perfil quede disponible.
    */
   const syncSession = async (session: Session | null): Promise<void> => {
     sessionData.value = session
@@ -121,6 +136,36 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       profile.value = null
       profileError.value = null
+      profilePromise = null
+      profileLoadingUserId = null
+    }
+  }
+
+  const signOut = async (): Promise<void> => {
+    const { error } = await supabase.auth.signOut()
+    user.value = null
+    profile.value = null
+    profileError.value = null
+    sessionData.value = null
+    profilePromise = null
+    profileLoadingUserId = null
+    if (error) throw error
+  }
+
+  const signIn = async (email: string, password: string): Promise<void> => {
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    })
+
+    if (signInError) throw signInError
+
+    await syncSession(data.session)
+
+    if (profileError.value) {
+      const message = profileError.value
+      await signOut().catch(() => {})
+      throw new Error(`No se pudo cargar tu perfil: ${message}`)
     }
   }
 
@@ -150,6 +195,7 @@ export const useAuthStore = defineStore('auth', () => {
             profile.value = null
             profileError.value = null
             profilePromise = null
+            profileLoadingUserId = null
           }
         })
 
@@ -176,5 +222,7 @@ export const useAuthStore = defineStore('auth', () => {
     initialize,
     ensureProfile,
     syncSession,
+    signIn,
+    signOut,
   }
 })

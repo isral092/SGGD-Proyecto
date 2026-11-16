@@ -10,6 +10,8 @@ const menuOpen = ref<boolean>(false)
 async function logout(): Promise<void> {
   try {
     await authStore.signOut()
+  } catch (error) {
+    console.warn('Error al cerrar sesión:', error)
   } finally {
     router.push('/login')
   }

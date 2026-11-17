@@ -35,6 +35,7 @@ Si eres un agente de IA o un desarrollador nuevo en este repositorio:
 ## 📍 2. Punto Exacto de Avance (Dónde estamos parados hoy)
 
 - La implementación de **PR B (`feat/baja-empleados`)** está completa y verificada localmente (69/69 tests unitarios, 0 errores de linter, build limpio).
+- Incluye el pulido visual responsive de `AppNavbar.vue`, la alineación de controles en `ReclamacionListado.vue` y la documentación de políticas RLS para `garantias_audit` en `docs/SCHEMA.sql`.
 - Lista en el working tree para commit, push y apertura de Pull Request hacia `main`, además de desactivar desde la UI las cuentas de prueba `jperez@example.com` y `luisexample15@gmail.com`.
 
 ---

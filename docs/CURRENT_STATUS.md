@@ -24,17 +24,23 @@
 | **Nivel 1 · Red de Seguridad & CI** | ✅ **Completado** | Workflow `.github/workflows/ci.yml` configurado y en verde. `docs/SCHEMA.sql` conciliado con la base de datos real e idempotente. Limpieza destructiva (`TRUNCATE`) aislada en `docs/one-off/` con `RAISE EXCEPTION`. |
 | **P0 · Mapeo de errores PostgreSQL (PR #10)** | ✅ **Completado** | Mapeo de códigos `23505`, `42501` y `23514` a mensajes claros en `reclamacionesRepo.ts` (+5 tests). |
 | **Nivel 2 · Sesión reactiva & Auth Hardening (PR #11 y #12)** | ✅ **Completado** | Reloj reactivo `now = ref(Date.now())` con `setTimeout` acotado; listener GoTrue síncrono; carrera de perfiles resuelta; desacoplamiento de capas (`signIn`/`signOut` en `authStore`); rollback automático si falla perfil; 54 tests en verde. |
-| **Limpieza de Vistas Inseguras (Supabase)** | ✅ **Completado** | Se ejecutó `DROP VIEW` sobre `garantias_activas_con_dias`, `reclamaciones_pendientes` y `profiles_activos`, eliminando las vistas `SECURITY DEFINER` sin restricción. |
+| **Limpieza de Vistas Inseguras (Supabase)** | ✅ **Completado** | Se ejecutó `DROP VIEW` sobre `garantias_activas_con_dias`, `reclamaciones_pendientes` y `profiles_activos`, eliminando vistas `SECURITY DEFINER` obsoletas (documentado en `docs/migrations/004_drop_vistas_inseguras.sql`). |
 | **PR A · Ciclo de Vida de Reclamaciones (PR #13)** | ✅ **Completado** | `updateEstadoReclamacion` con lista blanca de columnas RLS (`estado_reclamacion`, `notas_tecnico`), `.select()` y mapeo de errores; helper anti-XSS `esUrlSegura`; UI con filtros por estado, badges, notas técnicas y `fecha_resolucion`; 66 tests unitarios en verde. |
 | **PR B · Gestión y Baja de Empleados (PR #14)** | ✅ **Completado** | `setActivo(userId, activo)` en `usuariosRepo.ts` con `.select()` y validación de filas; desanidación de `execute()` en `registrarEmpleado`; toggle `Activo`/`Inactivo` con modal de confirmación, protección contra auto-bloqueo y rollback visual en selector de roles; ajustes responsivos en `AppNavbar.vue` y `ReclamacionListado.vue`; 69 tests unitarios en verde. |
-| **PR C · Documentación, CI E2E y Limpieza (`chore/docs-y-limpieza`)** | ✅ **Completado** | `README.md` y `docs/ARCHITECTURE.md` actualizados con roles vigentes (`admin`/`empleado`), rutas reales y árbol de archivos; scripts SQL organizados en `docs/migrations/`, `docs/SCHEMA.sql` y `docs/one-off/`; job de Playwright E2E integrado en GitHub Actions CI y limpieza de ramas obsoletas. |
+| **PR C · Documentación, CI E2E y Limpieza (PR #15)** | ✅ **Completado** | `README.md` y `docs/ARCHITECTURE.md` actualizados con roles vigentes (`admin`/`empleado`), rutas reales y árbol de archivos; scripts SQL organizados en `docs/migrations/`, `docs/SCHEMA.sql` y `docs/one-off/`; job de Playwright E2E sobre Chromium integrado en GitHub Actions CI. |
 
 ---
 
-## 📍 2. Punto Exacto de Avance
+## 📍 2. Punto Exacto de Avance (Cierre de Entrega)
 
-- Los **Niveles 0, 1, 2, 3 y 4** del plan de endurecimiento y refactorización se encuentran completados.
-- El trabajo del **PR C (`chore/docs-y-limpieza`)** está listo para subir y fusionarse en `main`.
+- El desarrollo planificado para el prototipo de **Taller de Investigación 2** ha quedado formalmente **concluido al 100%**.
+- Todos los Pull Requests (#10, #11, #12, #13, #14 y #15) han sido probados por CI y fusionados en `main`.
+- Las ramas remotas (`feat/*`, `fix/*`, `chore/*`) se preservan intencionalmente en el repositorio para proveer evidencia auditable y visual del flujo de trabajo *Git Feature Branching* ante el comité evaluador.
+- La suite completa de calidad cuenta con:
+  - **69 pruebas unitarias** pasando (`vitest`).
+  - **Prueba E2E institucional** pasando en navegador Chromium headless (`playwright`).
+  - **Linter y Type-check** con 0 errores y 0 advertencias (`oxlint`, `eslint`, `vue-tsc`).
+  - **Build de producción** generado y desplegado sin incidencias.
 
 ---
 

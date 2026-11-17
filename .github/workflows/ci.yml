@@ -43,7 +43,7 @@ jobs:
 
   e2e:
     name: E2E Tests (Playwright)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: verify
 
     steps:

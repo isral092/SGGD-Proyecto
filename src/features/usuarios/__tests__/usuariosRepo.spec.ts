@@ -147,4 +147,56 @@ describe('usuariosRepo', () => {
       )
     })
   })
+
+  describe('setActivo', () => {
+    it('envía únicamente la columna activo y encadena .select() al dar de baja o reactivar', async () => {
+      const selectMock = vi
+        .fn()
+        .mockResolvedValueOnce({ data: [{ id: 'user-123', activo: false }], error: null })
+      const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+      const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+      vi.mocked(supabase.from).mockReturnValue({
+        update: updateMock,
+      } as unknown as ReturnType<typeof supabase.from>)
+
+      await expect(usuariosRepo.setActivo('user-123', false)).resolves.toBeUndefined()
+      expect(supabase.from).toHaveBeenCalledWith('profiles')
+      expect(updateMock).toHaveBeenCalledWith({ activo: false })
+      expect(eqMock).toHaveBeenCalledWith('id', 'user-123')
+      expect(selectMock).toHaveBeenCalledWith('id, activo')
+    })
+
+    it('lanza error descriptivo si setActivo afecta 0 filas (bloqueo RLS o usuario inexistente)', async () => {
+      const selectMock = vi.fn().mockResolvedValueOnce({ data: [], error: null })
+      const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+      const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+      vi.mocked(supabase.from).mockReturnValue({
+        update: updateMock,
+      } as unknown as ReturnType<typeof supabase.from>)
+
+      await expect(usuariosRepo.setActivo('user-123', false)).rejects.toThrow(
+        'No se pudo actualizar el estado del empleado. Verifica tus permisos de administrador en Supabase (RLS).',
+      )
+    })
+
+    it('propaga el error de PostgreSQL si el trigger rechaza la baja (ej. auto-desactivación)', async () => {
+      const selectMock = vi.fn().mockResolvedValueOnce({
+        data: null,
+        error: new Error('No puedes cambiar tu propio rol ni desactivar tu propia cuenta'),
+      })
+      const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+      const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+      vi.mocked(supabase.from).mockReturnValue({
+        update: updateMock,
+      } as unknown as ReturnType<typeof supabase.from>)
+
+      await expect(usuariosRepo.setActivo('admin-actual', false)).rejects.toThrow(
+        'No puedes cambiar tu propio rol ni desactivar tu propia cuenta',
+      )
+    })
+  })
 })
+

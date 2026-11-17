@@ -275,11 +275,12 @@ function contactarCliente(email: string | undefined | null): void {
         </div>
 
         <!-- Panel de gestión técnica (Estado + Notas del técnico) -->
-        <div class="pt-2 border-t border-gray-100 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          <div>
+        <div class="pt-3 border-t border-gray-100 flex flex-col md:flex-row gap-4 items-start md:items-end">
+          <!-- Columna 1: Estado de Reclamación -->
+          <div class="w-full md:w-56 shrink-0">
             <label
               :for="`estado-${rec.id}`"
-              class="block text-xs font-bold uppercase text-gray-600 mb-1"
+              class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1.5"
             >
               Estado de Reclamación
             </label>
@@ -294,7 +295,7 @@ function contactarCliente(email: string | undefined | null): void {
                     (e.target as HTMLSelectElement).value as ReclamacionEstado,
                   )
               "
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              class="w-full h-11 px-3 border border-gray-300 rounded-lg text-sm font-semibold bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 transition shadow-sm"
             >
               <option
                 v-for="op in estadosOpciones"
@@ -306,32 +307,32 @@ function contactarCliente(email: string | undefined | null): void {
             </select>
           </div>
 
-          <div class="md:col-span-2 flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-            <div class="flex-1">
-              <label
-                :for="`notas-${rec.id}`"
-                class="block text-xs font-bold uppercase text-gray-600 mb-1"
-              >
-                Notas del Técnico
-              </label>
-              <textarea
+          <!-- Columna 2: Notas del Técnico + Botón Guardar -->
+          <div class="flex-1 w-full">
+            <label
+              :for="`notas-${rec.id}`"
+              class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1.5"
+            >
+              Notas del Técnico
+            </label>
+            <div class="flex flex-col sm:flex-row gap-2.5">
+              <input
                 v-if="rec.id"
                 :id="`notas-${rec.id}`"
                 v-model="notasBorrador[rec.id]"
-                rows="2"
                 :disabled="guardandoId === rec.id"
                 placeholder="Agrega observaciones técnicas o detalles de la resolución..."
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-              ></textarea>
+                class="flex-1 h-11 px-3.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 transition shadow-sm"
+              />
+              <button
+                type="button"
+                :disabled="guardandoId === rec.id"
+                @click="handleGuardarNotas(rec)"
+                class="h-11 px-5 bg-gray-900 hover:bg-black disabled:bg-gray-400 text-white text-sm font-semibold rounded-lg transition whitespace-nowrap flex items-center justify-center gap-2 shrink-0 shadow-sm"
+              >
+                {{ guardandoId === rec.id ? '⏳ Guardando...' : '💾 Guardar Notas' }}
+              </button>
             </div>
-            <button
-              type="button"
-              :disabled="guardandoId === rec.id"
-              @click="handleGuardarNotas(rec)"
-              class="px-4 py-2 bg-gray-800 hover:bg-gray-900 disabled:bg-gray-400 text-white text-sm font-semibold rounded-lg transition whitespace-nowrap"
-            >
-              {{ guardandoId === rec.id ? '⏳ Guardando...' : '💾 Guardar Notas' }}
-            </button>
           </div>
         </div>
       </div>

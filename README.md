@@ -106,4 +106,7 @@ src/
 
 ## Despliegue
 
-El repositorio incluye `vercel.json` configurado con redirecciones SPA hacia `index.html`. En el panel de Vercel deben definirse `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` y `VITE_HASH_SALT`.
+El repositorio incluye `vercel.json` configurado con redirecciones SPA hacia `index.html`. En el panel de Vercel deben definirse:
+- `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` (conexión a Supabase).
+- `VITE_HASH_SALT` (salt para verificación consistente de certificados).
+- `VITE_APP_URL` (la URL pública en producción, ej. `https://sggd-proyecto.vercel.app`, indispensable para que los códigos QR emitidos apunten al dominio web real y puedan ser escaneados desde teléfonos móviles).

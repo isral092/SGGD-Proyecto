@@ -1,67 +1,103 @@
 # Arquitectura — SGGD Frontend
 
-## Arquitectura Unificada: Feature-based MVVM ligero
+## Modelo: Feature-based MVVM ligero
 
-Hemos adoptado una postura arquitectónica madura y pragmática, organizando el frontend en un único modelo: **Feature-based MVVM ligero**.
-Esta arquitectura abandona la terminología confusa en favor de una estructura que escala naturalmente con Vue 3.
+El proyecto organiza el código por dominio de negocio (*vertical slices*) dentro de `src/features/`, manteniendo una separación unidireccional de responsabilidades:
 
-## Estructura de Directorios (Single Source of Truth)
+```text
+[ Vistas (.vue) ]
+       │
+       ▼
+[ Composables (use*.ts) / Stores (*Store.ts) ]
+       │
+       ▼
+[ Repositorios (*Repo.ts) ]
+       │
+       ▼
+[ Cliente de infraestructura (supabaseClient.ts) ]
+```
 
-Toda la aplicación se organiza bajo la siguiente jerarquía estricta:
+## Estructura de directorios
 
 ```text
 src/
-├── assets/                  # CSS global e imágenes
-├── core/                    # Infraestructura compartida
+├── assets/
+│   └── main.css                     # Configuración e imports de Tailwind CSS
+├── core/                            # Infraestructura compartida y utilidades agnósticas
+│   ├── composables/
+│   │   ├── __tests__/
+│   │   │   └── useAsyncState.spec.ts
+│   │   └── useAsyncState.ts         # Manejo estandarizado de loading, error y successMessage
 │   ├── config/
-│   │   └── supabaseClient.ts
-│   ├── types/
-│   │   └── supabase.ts
+│   │   └── supabaseClient.ts        # Instancia principal y cliente efímero de Supabase
 │   └── utils/
+│       ├── __tests__/               # Pruebas unitarias de utilidades y esquemas
+│       ├── cryptoUtils.ts           # Generación de hash SHA-256 para certificados
+│       ├── fechaUtils.ts            # Cálculos de vigencia y formato en zona local
+│       ├── formatUtils.ts           # Enmascaramiento defensivo de correos en UI
+│       └── schema.ts                # Esquemas de validación con Zod
+│
+├── features/                        # Módulos de negocio
+│   ├── auth/
+│   │   ├── __tests__/
+│   │   ├── AuthLogin.vue
+│   │   └── authStore.ts             # Estado global de sesión, perfil y expiración reactiva
+│   ├── garantias/
+│   │   ├── __tests__/
+│   │   ├── GarantiaListado.vue
+│   │   ├── GarantiaRegistro.vue
+│   │   ├── GarantiaVerificacion.vue
+│   │   ├── garantiasRepo.ts
+│   │   └── useGarantias.ts
+│   ├── reclamaciones/
+│   │   ├── __tests__/
+│   │   ├── ReclamacionListado.vue
+│   │   ├── reclamacionesRepo.ts
+│   │   └── useReclamaciones.ts
+│   └── usuarios/
 │       ├── __tests__/
-│       │   └── cryptoUtils.spec.ts
-│       ├── cryptoUtils.ts
-│       └── schema.ts
-│
-├── features/                # Módulos de negocio (Vertical Slices)
-│   ├── auth/                # Login y Store de Autenticación
-│   ├── garantias/           # Registro, Listado, Verificación
-│   ├── reclamaciones/       # Listado de reclamaciones
-│   └── usuarios/            # Perfil y Gestor de Roles
-│
-├── shared/                  # UI genérica
-│   ├── icons/               # Iconos SVG como componentes Vue
-│   └── layout/
-│       └── AppNavbar.vue
+│       ├── UsuarioPerfil.vue
+│       ├── UsuariosListado.vue
+│       ├── usuariosRepo.ts
+│       └── useUsuarios.ts
 │
 ├── router/
-│   └── index.ts
+│   ├── index.ts                     # Rutas y guard de autorización por rol y cuenta activa
+│   └── index.spec.ts
+├── shared/
+│   ├── icons/                       # Componentes SVG
+│   └── layout/
+│       └── AppNavbar.vue
 ├── App.vue
 └── main.ts
 ```
 
-## Principios Arquitectónicos Claros
+## Reglas de capas
 
-1. **Un feature = una carpeta:** Todo lo relacionado a un dominio de negocio (Garantías, Auth, Usuarios) vive junto.
-2. **Repository por feature (`*Repo.ts`):** Encargado exclusivo de hablar con la infraestructura (Supabase o APIs). Aísla la base de datos de la UI.
-3. **Composable como fachada (`use*.ts`):** Actúa como el *ViewModel*. Orquesta la lógica: llama al Repository, maneja estados de carga y expone variables reactivas a la vista.
-4. **Store solo para estado global (`*Store.ts`):** Pinia se reserva para datos que deben persistir entre múltiples pantallas (ej. sesión de usuario).
-5. **Core para infraestructura:** Todo lo que va en `core/` debe ser agnóstico al negocio.
+1. **Vistas (`.vue`):** Solo contienen plantilla, estado local de interfaz (modales, pestañas, borradores de inputs) y llamadas a composables o stores. Ningún componente `.vue` importa `supabaseClient` ni archivos `*Repo.ts`.
+2. **Composables (`use*.ts`):** Actúan como *ViewModel*. Orquestan llamadas al repositorio a través de `useAsyncState`, actualizan las listas reactivas en memoria y exponen funciones listas para la vista.
+3. **Store de autenticación (`authStore.ts`):**
+   - Centraliza `signIn`, `signOut`, `initialize`, `syncSession` y `ensureProfile`.
+   - Mantiene un reloj reactivo (`now`) sincronizado con `session.expires_at` mediante `setTimeout` acotado a $2^{31}-1$ ms para invalidar la sesión automáticamente al expirar el token.
+   - Descarta respuestas de perfil obsoletas si el usuario activo cambia mientras una petición sigue en vuelo.
+   - Expone los getters `isAuthenticated`, `isActive` (`profile.activo === true`), `isAdmin` e `isEmpleado`.
+4. **Repositorios (`*Repo.ts`):**
+   - Única capa que interactúa con `supabase.from(...)` o `supabase.rpc(...)`.
+   - En operaciones `.update()`, encadenan `.select()` y comprueban que se haya afectado al menos una fila para detectar bloqueos silenciosos de RLS.
+   - Traducen códigos de error de PostgreSQL (`23505`, `42501`, `23514`) a mensajes claros de dominio.
 
-## Seguridad y Transparencia
+## Seguridad en cliente y servidor
 
-### 1. Seguridad Basada en el Cliente vs Servidor (Supabase RLS)
-> [!IMPORTANT]
-> Las validaciones de ruta (`router/index.ts`) y la restricción de opciones en la UI son para fines de **Experiencia de Usuario (UX)**. 
-> Para proteger la base de datos de accesos no autorizados, es mandatorio tener activadas y configuradas las **Políticas RLS (Row Level Security)** en Supabase. Un usuario malintencionado puede evadir las capas de Vue y consultar la API de Supabase directamente si las tablas no tienen RLS.
+### 1. Row Level Security (RLS) y funciones RPC
+Los guards de `src/router/index.ts` y las validaciones de interfaz cumplen un propósito de experiencia de usuario. El control de acceso real reside en PostgreSQL:
 
-### 2. Limitaciones de Criptografía en el Cliente
-El archivo `src/core/utils/cryptoUtils.ts` genera hashes para las URLs públicas de validación de garantías.
-- **Limitación:** Al ser una aplicación 100% frontend (SPA), el salt `VITE_HASH_SALT` se compila y expone en el cliente.
-- **Alcance:** Funciona como un mecanismo de ofuscación de URLs para evitar manipulación fácil, pero no reemplaza a una firma criptográfica en backend.
+- Las tablas `garantias`, `garantias_audit`, `profiles` y `reclamaciones` tienen RLS habilitado.
+- La consulta pública de certificados (`/verificar/:hash`) no tiene permiso `SELECT` directo sobre `garantias`; consume la función `SECURITY DEFINER` `public.verificar_garantia(p_hash)`, que devuelve únicamente los campos públicos con el correo del cliente ya enmascarado desde el servidor.
+- En `reclamaciones`, los permisos de actualización están restringidos a nivel de columna (`GRANT UPDATE (estado_reclamacion, notas_tecnico)`), y las fechas de solicitud, actualización y resolución las asigna un trigger en el servidor.
+- En `profiles`, el trigger `trg_proteger_columnas_profiles` impide que un usuario cambie su propio rol, se desactive a sí mismo o deje al sistema sin al menos un administrador activo.
 
-### 3. Configuración de Variables de Entorno (`.env`)
-El proyecto utiliza variables de entorno para su inicialización:
-- `VITE_SUPABASE_URL`: URL del proyecto de Supabase.
-- `VITE_SUPABASE_ANON_KEY`: Clave anónima pública de Supabase.
-- `VITE_HASH_SALT`: Salt de hashing para verificación (ofuscación).
+### 2. Prevención de XSS en enlaces externos
+El campo `evidencia_url` de una reclamación proviene de un formulario público. Antes de renderizarlo como `<a href="...">`, se valida en el cliente con `esUrlSegura(url)` (aceptando únicamente protocolos `http:` y `https:`) y se acompaña de `target="_blank" rel="noopener noreferrer"`. En la base de datos, la restricción `reclamaciones_evidencia_url_check` refuerza la misma regla.
+
+### 3. Alcance del hash de certificado en el cliente
+`src/core/utils/cryptoUtils.ts` genera un identificador SHA-256 para cada certificado usando `VITE_HASH_SALT`. Al ejecutarse en el navegador, este hash funciona como un identificador único no secuencial para el código QR y no como una firma criptográfica con secreto de servidor.

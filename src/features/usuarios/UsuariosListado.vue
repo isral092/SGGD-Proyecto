@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/features/auth/authStore'
-import { useUsuarios } from './useUsuarios'
+import { useUsuarios, type Perfil } from './useUsuarios'
 import { nuevoEmpleadoSchema } from '@/core/utils/schema'
 
 const authStore = useAuthStore()
@@ -12,12 +12,16 @@ const {
   successMessage,
   loadPerfiles,
   cambiarRol,
+  cambiarActivo,
   registrarEmpleado,
 } = useUsuarios()
 
 const showModal = ref(false)
 const modalError = ref<string | null>(null)
 const guardandoEmpleado = ref(false)
+
+const perfilConfirmarEstado = ref<Perfil | null>(null)
+const procesandoId = ref<string | null>(null)
 
 const nuevoEmpleado = ref({
   nombre: '',
@@ -59,6 +63,40 @@ async function handleCrearEmpleado() {
   } else {
     modalError.value = error.value ?? 'No se pudo registrar el empleado'
   }
+}
+
+async function handleCambiarRol(perfil: Perfil, event: Event) {
+  const selectEl = event.target as HTMLSelectElement
+  const nuevoRol = selectEl.value
+  const rolAnterior = perfil.rol
+
+  procesandoId.value = perfil.id
+  const ok = await cambiarRol(perfil.id, nuevoRol)
+  procesandoId.value = null
+
+  if (!ok) {
+    selectEl.value = rolAnterior
+  }
+}
+
+function solicitarCambioEstado(perfil: Perfil) {
+  if (perfil.id === authStore.user?.id) return
+  perfilConfirmarEstado.value = perfil
+}
+
+function cancelarCambioEstado() {
+  perfilConfirmarEstado.value = null
+}
+
+async function confirmarCambioEstado() {
+  const objetivo = perfilConfirmarEstado.value
+  if (!objetivo || objetivo.id === authStore.user?.id) return
+
+  const nuevoEstado = !objetivo.activo
+  procesandoId.value = objetivo.id
+  await cambiarActivo(objetivo.id, nuevoEstado)
+  procesandoId.value = null
+  perfilConfirmarEstado.value = null
 }
 
 onMounted(async () => {
@@ -103,7 +141,7 @@ onMounted(async () => {
           <div>
             <h1 class="text-4xl sm:text-5xl font-bold text-gray-800 mb-2">👨‍💼 Gestor de Roles</h1>
             <p class="text-gray-600 text-base sm:text-lg">
-              Administra los roles y da de alta a empleados autorizados en el sistema
+              Administra los roles, altas y bajas de empleados autorizados en el sistema
             </p>
           </div>
           <button
@@ -203,8 +241,72 @@ onMounted(async () => {
           </div>
         </div>
 
+        <!-- MODAL DE CONFIRMACIÓN DE BAJA / REACTIVACIÓN -->
+        <div
+          v-if="perfilConfirmarEstado"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        >
+          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100">
+            <h2 class="text-xl font-bold text-gray-900 mb-3">
+              {{
+                perfilConfirmarEstado.activo
+                  ? '⚠️ Confirmar Baja de Empleado'
+                  : '🔄 Confirmar Reactivación de Cuenta'
+              }}
+            </h2>
+            <p class="text-gray-600 text-sm mb-6 leading-relaxed">
+              <template v-if="perfilConfirmarEstado.activo">
+                ¿Estás seguro de dar de baja a
+                <strong class="text-gray-900">{{
+                  perfilConfirmarEstado.nombre || perfilConfirmarEstado.email
+                }}</strong>
+                (<span class="font-mono text-xs">{{ perfilConfirmarEstado.email }}</span>)?
+                Su cuenta quedará marcada como <strong>Inactiva</strong> y perderá el acceso a los
+                módulos operativos del sistema.
+              </template>
+              <template v-else>
+                ¿Deseas reactivar la cuenta de
+                <strong class="text-gray-900">{{
+                  perfilConfirmarEstado.nombre || perfilConfirmarEstado.email
+                }}</strong>
+                (<span class="font-mono text-xs">{{ perfilConfirmarEstado.email }}</span>)?
+                El usuario recuperará el acceso operativo según su rol asignado.
+              </template>
+            </p>
+            <div class="flex gap-3">
+              <button
+                type="button"
+                @click="cancelarCambioEstado"
+                :disabled="procesandoId === perfilConfirmarEstado.id"
+                class="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                @click="confirmarCambioEstado"
+                :disabled="procesandoId === perfilConfirmarEstado.id"
+                :class="
+                  perfilConfirmarEstado.activo
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-green-600 hover:bg-green-700'
+                "
+                class="flex-1 px-4 py-2.5 disabled:bg-gray-400 text-white font-bold rounded-xl transition shadow"
+              >
+                {{
+                  procesandoId === perfilConfirmarEstado.id
+                    ? '⏳ Procesando...'
+                    : perfilConfirmarEstado.activo
+                      ? 'Confirmar Baja'
+                      : 'Reactivar Cuenta'
+                }}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- CARGANDO -->
-        <div v-if="loading" class="text-center py-16">
+        <div v-if="loading && perfiles.length === 0" class="text-center py-16">
           <div class="inline-block">
             <svg class="animate-spin h-16 w-16 text-blue-600" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" />
@@ -216,24 +318,30 @@ onMounted(async () => {
 
         <!-- TABLA -->
         <div v-else class="w-full overflow-x-auto pb-4">
-          <table class="w-full min-w-[800px] bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
+          <table class="w-full min-w-[900px] bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
             <thead class="bg-gradient-to-r from-gray-100 to-gray-50 border-b-2 border-gray-200">
               <tr>
                 <th class="px-8 py-6 text-left text-lg font-bold text-gray-800">Email</th>
                 <th class="px-8 py-6 text-left text-lg font-bold text-gray-800">Nombre</th>
                 <th class="px-8 py-6 text-left text-lg font-bold text-gray-800">Rol Actual</th>
                 <th class="px-8 py-6 text-left text-lg font-bold text-gray-800">Cambiar Rol</th>
+                <th class="px-8 py-6 text-left text-lg font-bold text-gray-800">Estado</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="perfil in perfiles" :key="perfil.id" class="border-b border-gray-200 hover:bg-gray-50 transition">
+              <tr
+                v-for="perfil in perfiles"
+                :key="perfil.id"
+                class="border-b border-gray-200 hover:bg-gray-50 transition"
+                :class="{ 'opacity-70 bg-gray-50/60': !perfil.activo }"
+              >
                 <td class="px-8 py-6 text-gray-900 text-base font-medium">{{ perfil.email }}</td>
                 <td class="px-8 py-6 text-gray-900 text-base">{{ perfil.nombre || '-' }}</td>
                 <td class="px-8 py-6">
                   <span
                     :class="{
                       'bg-red-100 text-red-800': perfil.rol === 'admin',
-                      'bg-blue-100 text-blue-800': perfil.rol === 'empleado'
+                      'bg-blue-100 text-blue-800': perfil.rol === 'empleado',
                     }"
                     class="inline-block px-4 py-2 rounded-full text-base font-bold border-2"
                   >
@@ -243,8 +351,8 @@ onMounted(async () => {
                 <td class="px-8 py-6">
                   <select
                     :value="perfil.rol"
-                    :disabled="perfil.id === authStore.user?.id"
-                    @change="(e) => cambiarRol(perfil.id, (e.target as HTMLSelectElement).value)"
+                    :disabled="perfil.id === authStore.user?.id || procesandoId === perfil.id"
+                    @change="(e) => handleCambiarRol(perfil, e)"
                     class="px-4 py-3 border-2 border-gray-300 rounded-lg text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     <option value="empleado">🏢 Empleado</option>
@@ -256,6 +364,41 @@ onMounted(async () => {
                   >
                     (Tu cuenta)
                   </span>
+                </td>
+                <td class="px-8 py-6">
+                  <div class="flex items-center gap-3">
+                    <button
+                      type="button"
+                      role="switch"
+                      :aria-checked="perfil.activo"
+                      :disabled="perfil.id === authStore.user?.id || procesandoId === perfil.id"
+                      @click="solicitarCambioEstado(perfil)"
+                      class="relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      :class="perfil.activo ? 'bg-green-600' : 'bg-gray-300'"
+                      :title="
+                        perfil.id === authStore.user?.id
+                          ? 'No puedes desactivar tu propia cuenta'
+                          : perfil.activo
+                            ? 'Dar de baja al empleado'
+                            : 'Reactivar cuenta de empleado'
+                      "
+                    >
+                      <span
+                        class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                        :class="perfil.activo ? 'translate-x-6' : 'translate-x-0'"
+                      />
+                    </button>
+                    <span
+                      class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
+                      :class="
+                        perfil.activo
+                          ? 'bg-green-100 text-green-800 border border-green-300'
+                          : 'bg-gray-200 text-gray-700 border border-gray-300'
+                      "
+                    >
+                      {{ perfil.activo ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -270,3 +413,4 @@ onMounted(async () => {
     </div>
   </main>
 </template>
+

@@ -98,6 +98,21 @@ export const usuariosRepo = {
     }
   },
 
+  async setActivo(userId: string, activo: boolean): Promise<void> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ activo })
+      .eq('id', userId)
+      .select('id, activo')
+
+    if (error) throw error
+    if (!data || data.length === 0) {
+      throw new Error(
+        'No se pudo actualizar el estado del empleado. Verifica tus permisos de administrador en Supabase (RLS).',
+      )
+    }
+  },
+
   async getPerfilById(userId: string): Promise<Perfil> {
     const { data, error } = await supabase
       .from('profiles')
@@ -112,5 +127,6 @@ export const usuariosRepo = {
       throw error
     }
     return data as Perfil
-  }
+  },
 }
+

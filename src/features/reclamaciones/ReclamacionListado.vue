@@ -321,14 +321,14 @@ function contactarCliente(email: string | undefined | null): void {
                 rows="2"
                 :disabled="guardandoId === rec.id"
                 placeholder="Agrega observaciones técnicas o detalles de la resolución..."
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 resize-none h-[62px]"
               ></textarea>
             </div>
             <button
               type="button"
               :disabled="guardandoId === rec.id"
               @click="handleGuardarNotas(rec)"
-              class="px-4 py-2 bg-gray-800 hover:bg-gray-900 disabled:bg-gray-400 text-white text-sm font-semibold rounded-lg transition whitespace-nowrap"
+              class="h-[62px] px-5 bg-gray-800 hover:bg-gray-900 disabled:bg-gray-400 text-white text-sm font-semibold rounded-lg transition whitespace-nowrap flex items-center justify-center gap-2"
             >
               {{ guardandoId === rec.id ? '⏳ Guardando...' : '💾 Guardar Notas' }}
             </button>

@@ -337,6 +337,17 @@ CREATE POLICY "Staff ve garantias"
   ON public.garantias FOR SELECT TO authenticated
   USING (public.is_staff());
 
+-- Políticas de garantias_audit (Permite registrar auditoría por triggers y lectura para staff)
+DROP POLICY IF EXISTS "Staff inserta auditoria" ON public.garantias_audit;
+CREATE POLICY "Staff inserta auditoria"
+  ON public.garantias_audit FOR INSERT TO authenticated
+  WITH CHECK (public.is_staff());
+
+DROP POLICY IF EXISTS "Staff ve auditoria" ON public.garantias_audit;
+CREATE POLICY "Staff ve auditoria"
+  ON public.garantias_audit FOR SELECT TO authenticated
+  USING (public.is_staff());
+
 -- Políticas de reclamaciones
 DROP POLICY IF EXISTS "Reclamacion controlada" ON public.reclamaciones;
 CREATE POLICY "Reclamacion controlada"

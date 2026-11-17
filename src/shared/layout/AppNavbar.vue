@@ -36,18 +36,18 @@ function getRoleLabel(role: string | undefined): string {
     <div class="w-full px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
         <!-- LOGO / BRAND -->
-        <div class="flex items-center gap-4">
-          <h1 class="text-2xl font-bold text-blue-600">🛡️ SGGD</h1>
-          <p class="text-gray-600 text-sm hidden sm:block">Sistema de Garantías Digitales</p>
+        <div class="flex items-center gap-3 shrink-0">
+          <h1 class="text-2xl font-bold text-blue-600 whitespace-nowrap">🛡️ SGGD</h1>
+          <p class="text-gray-600 text-sm hidden xl:block whitespace-nowrap">Sistema de Garantías Digitales</p>
         </div>
 
-        <!-- ✅ MENÚ DESKTOP (TU CÓDIGO IMPLEMENTADO) -->
-        <div class="hidden md:flex items-center gap-6">
+        <!-- ✅ MENÚ DESKTOP -->
+        <div class="hidden md:flex items-center gap-2 lg:gap-4 xl:gap-5">
           <!-- HOME (SOLO SI AUTENTICADO CON ROL EMPRESARIAL) -->
           <router-link
             v-if="authStore.isAdmin || authStore.isEmpleado"
             to="/"
-            class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-2"
+            class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-1 text-sm whitespace-nowrap"
             :class="$route.path === '/' ? 'text-blue-600 border-b-2 border-blue-600' : ''"
           >
             🏠 Home
@@ -57,7 +57,7 @@ function getRoleLabel(role: string | undefined): string {
           <router-link
             v-if="authStore.isAuthenticated"
             to="/perfil"
-            class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-2"
+            class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-1 text-sm whitespace-nowrap"
             :class="$route.path === '/perfil' ? 'text-blue-600 border-b-2 border-blue-600' : ''"
           >
             👤 Mi Perfil
@@ -65,17 +65,17 @@ function getRoleLabel(role: string | undefined): string {
           <router-link
             v-if="authStore.isAdmin || authStore.isEmpleado"
             to="/reclamaciones"
-            class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-2"
+            class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-1 text-sm whitespace-nowrap"
             :class="
               $route.path === '/reclamaciones' ? 'text-blue-600 border-b-2 border-blue-600' : ''
             "
           >
-            Reclamaciones
+            📋 Reclamaciones
           </router-link>
           <router-link
             v-if="authStore.isAdmin || authStore.isEmpleado"
             to="/garantias"
-            class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-2"
+            class="text-gray-700 hover:text-blue-600 font-medium transition duration-200 pb-1 text-sm whitespace-nowrap"
             :class="$route.path === '/garantias' ? 'text-blue-600 border-b-2 border-blue-600' : ''"
           >
             📦 Garantías
@@ -85,22 +85,27 @@ function getRoleLabel(role: string | undefined): string {
           <router-link
             v-if="authStore.isAdmin"
             to="/admin/roles"
-            class="text-white bg-red-600 hover:bg-red-700 font-medium px-4 py-2 rounded-lg transition duration-200"
+            class="text-white bg-red-600 hover:bg-red-700 font-medium px-2.5 py-1.5 lg:px-3.5 lg:py-2 rounded-lg text-xs lg:text-sm transition duration-200 whitespace-nowrap shrink-0"
           >
             ⚙️ Gestor de Roles
           </router-link>
 
           <!-- SI ESTÁ AUTENTICADO -->
-          <div v-if="authStore.isAuthenticated" class="flex items-center gap-4 border-l pl-6">
-            <div class="text-right text-sm">
-              <p class="font-semibold text-gray-800">{{ authStore.user?.email }}</p>
-              <p class="text-xs text-gray-600">
+          <div v-if="authStore.isAuthenticated" class="flex items-center gap-2 lg:gap-3 border-l border-gray-200 pl-3 lg:pl-5 shrink-0">
+            <div class="text-right text-xs lg:text-sm">
+              <p
+                class="font-semibold text-gray-800 max-w-[130px] lg:max-w-[180px] xl:max-w-[240px] truncate"
+                :title="authStore.user?.email || ''"
+              >
+                {{ authStore.user?.email }}
+              </p>
+              <p class="text-[11px] lg:text-xs text-gray-500 font-medium">
                 {{ getRoleLabel(authStore.profile?.rol) }}
               </p>
             </div>
             <button
               @click="logout"
-              class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200"
+              class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition duration-200 whitespace-nowrap"
             >
               Salir
             </button>
